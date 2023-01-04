@@ -1,0 +1,8 @@
+megs : 32
+
+boot: disk
+
+log: bochs.out
+
+ata0:enabled=true,ioaddr1=0x1f0,ioaddr2=0x3f0,irq=14
+ata0-master: type=disk, path="master.img", mode=flat,cylinders=121,heads=16,spt=63

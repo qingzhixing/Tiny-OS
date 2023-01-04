@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../../Git/OsElephant"
+		},
+		{
+			"path": "../../../Git/Tiny-OS"
+		}
+	],
+	"settings": {}
+}
