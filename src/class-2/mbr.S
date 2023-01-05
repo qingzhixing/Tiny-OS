@@ -1,7 +1,7 @@
 SECTION MBR vstart=0x7c00; 程序在内存中地址为0X7C00
     ; 清空寄存器
     mov ax,0
-    mov cs,ax; 实际上此时cs已经为0
+    ; cs值不需要改动，为代码段寄存器
     mov ds,ax
     mov es,ax
     mov ss,ax
@@ -14,7 +14,7 @@ SECTION MBR vstart=0x7c00; 程序在内存中地址为0X7C00
         ; 利用0x10中断 0x06子功能,上卷全部行，即可实现清屏
         mov ax,0x600    ; AH:功能号=0x06, AL:上卷行数(为0则表示全部)=0
         mov bx,0x700    ; BH:上卷行属性,颜色等=0x07
-        mov cx,0x06     ; (CL,CH)表示窗口左上角(X,Y)位置，为(0,0)
+        mov cx,0        ; (CL,CH)表示窗口左上角(X,Y)位置，为(0,0)
         mov dx,0x184f   ; (DL,DH)表示窗口右下角(X,Y)位置,为(79,24)
                         ; 下标从0开始,0x18=24,0x4f=79.
                         ; VGA文本模式中，一行只能容纳80个字符，共25行

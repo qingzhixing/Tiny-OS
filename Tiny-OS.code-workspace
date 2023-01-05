@@ -4,10 +4,10 @@
 			"path": "."
 		},
 		{
-			"path": "../../../Git/OsElephant"
+			"path": "../Cooi-Boi/Tiny-OS"
 		},
 		{
-			"path": "../../../Git/Tiny-OS"
+			"path": "../OsElephant"
 		}
 	],
 	"settings": {}
