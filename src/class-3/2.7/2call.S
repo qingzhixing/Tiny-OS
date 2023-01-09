@@ -1,3 +1,4 @@
+; 间接绝对近调用
 section call_test vstart=0x900
     mov word [addr],near_proc
     call [addr]

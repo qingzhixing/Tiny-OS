@@ -1,3 +1,4 @@
+; 直接相对近调用
 call near near_proc
 jmp $
 addr dd 4
