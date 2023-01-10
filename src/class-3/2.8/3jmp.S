@@ -1,4 +1,4 @@
-; 间接绝对短转移
+; 间接绝对短转移-寄存器寻址
 section call_test vstart=0x900
     mov ax,start
     ; register size specification ignore报错
