@@ -4,10 +4,10 @@
 			"path": "."
 		},
 		{
-			"path": "../Cooi-Boi/Tiny-OS"
+			"path": "references/Tiny-OS"
 		},
 		{
-			"path": "../OsElephant"
+			"path": "references/OsElephant"
 		}
 	],
 	"settings": {}
