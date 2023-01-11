@@ -1,0 +1,4 @@
+*.bin
+*.img
+master.img.lock
+bochs.out
