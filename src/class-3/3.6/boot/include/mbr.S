@@ -1,4 +1,4 @@
-; %include "boot.inc"
+%include "boot.inc"
 SECTION MBR vstart=0x7c00; 程序在内存中地址为0X7C00
     ; 清空寄存器
     mov ax,0
@@ -50,12 +50,12 @@ SECTION MBR vstart=0x7c00; 程序在内存中地址为0X7C00
         mov byte [gs:0x08],'R'
         mov byte [gs:0x09],0xA4
 
-    ; mov eax,LOADER_START_SECTOR     ; loader起始扇区LBA地址
-    ; mov bx,LOADER_BASE_ADDR         ; loader写入内存的地址
+    mov eax,LOADER_START_SECTOR     ; loader起始扇区LBA地址
+    mov bx,LOADER_BASE_ADDR         ; loader写入内存的地址
     mov cx,1                        ; 待读入扇区的数量
     call rd_disk_m_16
 
-    ; jmp LOADER_BASE_ADDR
+    jmp LOADER_BASE_ADDR
 
 
     ; 在16位模式下读取硬盘n个扇区
