@@ -126,7 +126,7 @@ SECTION MBR vstart=0x7c00; 程序在内存中地址为0X7C00
             mov ax,di               ; 读取扇区数
             mov dx,256
             mul dx                  ; ax*=dx,即ax=di*256(结果为32位，此时只用到了低16位结果)
-            mov cx,ax               ; 乘积转移到cx中
+            mov cx,ax               ; 乘积转移到cx中,作为循环计数器
             ; di为读取扇区数，一个扇区512字节，每次读入一个字(此时在16位系统，所以为16位,2字节)
             ; 共需 di* [512字节/(1字=2字节)]，所以di*256
             mov dx,0x1f0
@@ -135,7 +135,7 @@ SECTION MBR vstart=0x7c00; 程序在内存中地址为0X7C00
                 in ax,dx            ; 一次读2字节,16位
                 mov [bx],ax
                 add bx,2            ; 将ax放入[bx],并移动bx指针位置
-                loop .go_on_read
+                loop .go_on_read    ; cx为循环计数器
 
         ret
 
