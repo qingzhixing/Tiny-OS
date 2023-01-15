@@ -1,4 +1,3 @@
-; %include "boot.inc"
 SECTION MBR vstart=0x7c00; 程序在内存中地址为0X7C00
     ; 清空寄存器
     mov ax,0
@@ -49,39 +48,6 @@ SECTION MBR vstart=0x7c00; 程序在内存中地址为0X7C00
         
         mov byte [gs:0x08],'R'
         mov byte [gs:0x09],0xA4
-
-    ; mov eax,LOADER_START_SECTOR     ; loader起始扇区LBA地址
-    ; mov bx,LOADER_BASE_ADDR         ; loader写入内存的地址
-    mov cx,1                        ; 待读入扇区的数量
-    call rd_disk_m_16
-
-    ; jmp LOADER_BASE_ADDR
-
-
-    ; 在16位模式下读取硬盘n个扇区
-    ; eax=LBA扇区号
-    ; bx=将数据写入的内存地址
-    ; cx=读入的扇区数
-    rd_disk_m_16:
-        mov esi,eax     ; 备份eax,源变址寄存器
-        mov di,cx       ; 备份cx
-
-        ; 第一步：设置要读写的扇区数量
-        mov dx,0x1f2    ; 调用端口号，写操作为设置Primary通道的读取扇区数量
-        mov al,cl
-        out dx,al       ; 写操作为设置Primary通道的读取扇区数量
-
-        mov eax,esi     ; 恢复ax
-
-        ; 第二步：将LBA地址存入 0x1f3 ~ 0x1f6 端口
-        ; LBA地址7~0位存入0x1f3端口
-        mov dx,0x1f3
-        out dx,al
-
-        ; LBA地址15~8位写入端口
-        mov cl,8
-        shr eax,cl      ; 
-        ret
 
     jmp $; 阻塞
     times 510-($-$$) db 0; 填充0到510字节处
