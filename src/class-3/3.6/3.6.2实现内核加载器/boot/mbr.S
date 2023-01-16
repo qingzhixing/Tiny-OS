@@ -10,10 +10,6 @@ SECTION MBR vstart=0x7c00; 程序在内存中地址为0X7C00
 
     mov sp,0x7c00; 初始化栈指针
 
-    ; 初始化吸显卡文本模式段地址
-    mov ax,0xb800
-    mov gs,ax; gs存储段地址
-
     ; 清屏
     .clear_screen:
         ; 利用0x10中断 0x06子功能,上卷全部行，即可实现清屏
@@ -24,22 +20,6 @@ SECTION MBR vstart=0x7c00; 程序在内存中地址为0X7C00
                         ; 下标从0开始,0x18=24,0x4f=79.
                         ; VGA文本模式中，一行只能容纳80个字符，共25行
         int 0x10        ; 调用中断
-    ; 将背景绿色，前景红色，跳动的"1 MBR"写入显存
-    .print_1_MBR:
-        mov byte [gs:0x00],'1'
-        mov byte [gs:0x01],0xA4; A表示绿色背景闪烁，4表示前景色为红色
-
-        mov byte [gs:0x02],' '
-        mov byte [gs:0x03],0xA4
-
-        mov byte [gs:0x04],'M'
-        mov byte [gs:0x05],0xA4
-
-        mov byte [gs:0x06],'B'
-        mov byte [gs:0x07],0xA4
-        
-        mov byte [gs:0x08],'R'
-        mov byte [gs:0x09],0xA4
 
     mov eax,LOADER_START_SECTOR     ; loader起始扇区LBA地址
     mov bx,LOADER_BASE_ADDR         ; loader写入内存的地址
@@ -130,6 +110,5 @@ SECTION MBR vstart=0x7c00; 程序在内存中地址为0X7C00
 
         ret
 
-    jmp $; 阻塞
     times 510-($-$$) db 0; 填充0到510字节处
     db 0x55,0xaa; 魔数,用于判断mbr分区是否损坏
