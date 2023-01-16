@@ -1,10 +1,10 @@
 BUILD=./build
 SRC=.
-INCLUDE_PATH=$(SRC)/boot/include
+BOOT_PATH=$(SRC)/boot
 
-$(BUILD)/%.bin:$(INCLUDE_PATH)/%.S
+$(BUILD)/%.bin:$(BOOT_PATH)/%.S
 	$(shell mkdir -p $(BUILD))
-	nasm -I $(INCLUDE_PATH) -f bin $< -o $@
+	nasm -I $(BOOT_PATH) -f bin $< -o $@
 
 $(BUILD)/master.img:$(BUILD)/mbr.bin
 	$(shell mkdir -p $(BUILD))
