@@ -1,4 +1,4 @@
-section loader vstart=0x900
+section push16_test vstart=0x900
     ; esp=0x7c00
     mov sp,0x900
     ; esp=0x900

@@ -21,4 +21,4 @@ clean:
 bochs:$(BUILD)/master.img
 	bochs -q -f bochsrc.disk
 
-test:$(BUILD)/master.img
+test:$(BUILD)/32push.bin
