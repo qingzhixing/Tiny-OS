@@ -1,0 +1,11 @@
+section loader vstart=0x900
+    ; esp=0x7c00
+    mov sp,0x900
+    ; esp=0x900
+    push byte 0x7
+    ; esp=0x8fe
+    push word 0x8
+    ; esp=0x8fc
+    push dword 0x9
+    ; esp=0x8f8
+    jmp $
