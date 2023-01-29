@@ -8,7 +8,7 @@
 
 ## 如何运行？
 
-需要bochs模拟代码时，请确保shell当前目录与makefile为同一个目录
+需要bo chs模拟代码时，请确保shell当前目录与makefile为同一个目录
 
 命令行输入make bochs即可使用gui_debug模式下的bochs运行
 
