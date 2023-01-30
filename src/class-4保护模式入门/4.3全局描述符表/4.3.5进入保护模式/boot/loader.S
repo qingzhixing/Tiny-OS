@@ -67,7 +67,7 @@ section loader vstart=LOADER_BASE_ADDR
             or eax,0x00000001
             mov cr0,eax
 
-        jmp dword SELECTOR_CODE:p_mode_start    ; 刷新流水线
+        jmp dword SELECTOR_CODE:p_mode_start    ; 用无条件跳转指令清空cpu流水线
 
 
     [bits 32] ; 32位模式
