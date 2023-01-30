@@ -21,6 +21,9 @@ Bochs x86 Emulator 2.6.11
 > 这个需要手动下载源码编译，打开gui_debug并安装，apt,homebrew等下载的Bochs没有打开gui_debug.
 >
 > 版本2.6+，因为bochs参数不同，比如2.5 bximg -func 在2.6版本改成了-mode
+>
+> [Bochs2.6.11配置安装参考](https://www.cnblogs.com/oasisyang/archive/2021/09/30/15358137.html "Bochs2.6.11配置安装参考")
+>
 
 GNU Make 4.2.1
 
