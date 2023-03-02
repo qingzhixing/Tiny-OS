@@ -70,11 +70,28 @@ section loader vstart=LOADER_BASE_ADDR
             xor ebx,ebx             ; 调用前需清零
             mov edx,0x534d4150      ; "SMAP" 用于信息校验
             mov di,ards_buf         ; ARDS缓冲区，BIOS将写入di指向的内存，以ARDS格式返回
+            
             .e820_mem_get_loop:
                 ; mov eax,0x0000e820
                 mov ax,0xe820       ; 功能号,执行完int 0x15后变为0x 534d4150
                                     ;   故每次执行int 前都要更新子功能号
-                
+                mov cx,20           ; ARDS地址范围描述符结构大小为20字节
+                int 0x15
+                ; CF位为1则表示有错误发生，尝试0xe801子功能
+                jc .e820_failed_so_try_e801
+
+                add di,cx           ; 移动di指向新ARDS结构位置
+                inc word [ards_nr]  ; ARDS数量增加
+                cmp ebx,0           ; 若 ebx==0 && cf !=1 则表示ards全部返回
+                ; 否则继续循环
+                jne .e820_mem_get_loop
+            
+            ; 在所有ards结构中找到内存容量(即base_add_low+length_low)最大值，则为可用内存容量
+            mov cx,[ards_nr]
+            ; TODO:止步于此，明日继续
+
+            ; e820错误后调用
+            .e820_failed_so_try_e801:
         
         ; 进入保护模式准备：
         ; 1.打开A20Gate
