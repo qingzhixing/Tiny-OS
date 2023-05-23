@@ -41,6 +41,7 @@ section loader vstart=LOADER_BASE_ADDR
     ; total_mem_bytes:4 + gdt_ptr:6 + ards_buf:244 + ards_nr:2 一共256Bytes
 
     ards_buf times 244 db 0
+    ARDS_SIZE_BYTES equ 20
     ards_nr dw 0                ; 用于记录ARDS结构体的数量
 
     ; 定义选择子
@@ -75,7 +76,7 @@ section loader vstart=LOADER_BASE_ADDR
                 ; mov eax,0x0000e820
                 mov ax,0xe820       ; 功能号,执行完int 0x15后变为0x 534d4150
                                     ;   故每次执行int 前都要更新子功能号
-                mov cx,20           ; ARDS地址范围描述符结构大小为20字节
+                mov cx,ARDS_SIZE_BYTES           ; ARDS地址范围描述符结构大小为20字节
                 int 0x15
                 ; CF位为1则表示有错误发生，尝试0xe801子功能
                 jc .e820_failed_so_try_e801
@@ -88,7 +89,15 @@ section loader vstart=LOADER_BASE_ADDR
             
             ; 在所有ards结构中找到内存容量(即base_add_low+length_low)最大值，则为可用内存容量
             mov cx,[ards_nr]
-            ; TODO:止步于此，明日继续
+            mov ebx,ards_buf        ; 遍历ards_buf
+            xor edx,edx             ; edx为最大容量，清空
+            .find_max_mem_area:
+                mov eax,[ebx]       ; base_add_low
+                add eax,[ebx+8]     ; length_low
+                add ebx,ARDS_SIZE_BYTES ; 遍历到下一个ards
+                cmp edx,eax         ; edx为最大内存大小
+                ; 大于等于则 TODO:Stop here bp
+                jge .next_ards
 
             ; e820错误后调用
             .e820_failed_so_try_e801:
