@@ -275,11 +275,8 @@ section loader vstart=LOADER_BASE_ADDR
             
             ; 我滴任务完成辣!
             .mem_get_ok:
-                xchg bx,bx      ;debug 用来查看edx的值，看是否内存检测成功
+                ; xchg bx,bx      ;debug 用来查看edx的值，看是否内存检测成功
                 mov [total_mem_bytes],edx
-
-
-
         
         ; 进入保护模式准备：
         ; 1.打开A20Gate
@@ -328,7 +325,7 @@ section loader vstart=LOADER_BASE_ADDR
         
         ;创建页目录项(Page Directory Entry-PDE)
         .create_pde:
-            mov eax,PAGE_DIR_TABLE_POS
+            mov eax,PAGE_DIR_TABLE_POS  ; 表示PDE放在出了低端1MB空间的第一个字节
             add eax,0x1000              ; eax表示第一个 页表 的位置兼属性 
             ;TODO:为何加上0x1000
             mov ebx,eax                 ; 为.create_pte做准备,ebx为基址
@@ -340,6 +337,8 @@ section loader vstart=LOADER_BASE_ADDR
 
             or eax,PG_US_U | PG_RW_W | PG_P
             ; 该 页目录项 属性:用户级别 | 可读可写 | 页表存在
+
+            ; 创建两个页目录，一个给最低端loader的1MB, 一个给内核
             mov [PAGE_DIR_TABLE_POS + 0x0],eax      ; 一个页表项占4个字节
             mov [PAGE_DIR_TABLE_POS + 0xc00],eax
             ; 0xc00表示第768个表占用的目录项(0xc00/4=768),
@@ -349,11 +348,12 @@ section loader vstart=LOADER_BASE_ADDR
             
             sub eax,0x1000
             mov [PAGE_DIR_TABLE_POS + 4092] , eax ;eax此时为PAGE_DIR_TABLE_POS
-            ; 让最后一个 页目录项 指向目录表自己的地址
+            ; 让最后一个(第1024个） 页目录项 指向目录表自己的地址
         
         ;创建页表项(Page Table Entry-PTE)
         mov ecx,256         ; 1M 低端内存 / 每页大小4k = 256
-                            ; 此时仅仅分配1MB内存（最大4MB,ecx=1024)
+                            ; 此时仅仅分配低端1MB内存（最大4MB,ecx=1024)
+                            ; 0x0~0xfffff
         mov esi, 0
         mov edx,PG_US_U | PG_RW_W | PG_P
         .create_pte:
@@ -368,6 +368,8 @@ section loader vstart=LOADER_BASE_ADDR
         or eax,PG_US_U|PG_RW_W|PG_P
         mov ebx,PAGE_DIR_TABLE_POS
         mov ecx,254                 ; 范围为第769~1022的左右目录项数量
+                                    ;    TODO:    ^    为何不是1023
+                                    ;  第1023个目录已经在上文设置
         mov esi,769
         .create_kernel_pde:
             mov [ebx+esi*4],eax
@@ -404,6 +406,40 @@ section loader vstart=LOADER_BASE_ADDR
             mov byte [gs:0x08],'R'
             mov byte [gs:0x09],0xA4
 
-        jmp setup_page
+        ;创建页目录及页表并初始化内存位图
+        call setup_page
+
+        ;将描述符地址以及偏移量写入内存gdt_ptr,一会儿用新地址重新加载
+        sgdt [gdt_ptr]              ; 倒出并储存到原来gdt所有的位置
+
+        mov ebx, [gdt_ptr+2]
+        ; gdt_ptr处的值有两部分：前部分2字节大小的GDT界限，其后为4字节大小的地址
+        or dword [ebx + 0x18 + 4],0xc000_0000 
+        ; 显存段描述符为第三个描述符，一个描述符大小8字节，故ebx要加上0x18
+        ;  才能访问显存段描述符。段描述符记录段基址最高位部分是在段描述符的
+        ;  高4字节的最高1字节,故还要加上0x4
+
+        ;将 gdt视频描述符中的段基址+0xc000_0000使其成为内核所在的高地址
+        add dword [gdt_ptr+2],0xc000_0000
+
+        add esp,0xc000_0000         ; 栈指针同样映射到内核地址
+
+        ; 把页目录地址赋给cr3
+        mov eax,PAGE_DIR_TABLE_POS
+        mov cr3,eax
+
+        ; 打开cr0位段pg位（第31位）
+        mov eax,cr0
+        or eax,0x8000_0000  ; 0x1<<31
+        mov cr0,eax
+
+        xchg bx,bx
+
+
+        ; 开启分页后，用gdt新地址重新加载
+        lgdt [gdt_ptr]      ;重新加载
+        mov byte [gs:160],'V'
+        ;   视频段段地址已经被更新，用自负v表示virtual addr
+
     xchg bx,bx      ;阻塞前魔术断点
     jmp $; 阻塞
