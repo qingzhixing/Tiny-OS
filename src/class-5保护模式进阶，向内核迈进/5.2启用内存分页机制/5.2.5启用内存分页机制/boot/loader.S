@@ -316,6 +316,67 @@ section loader vstart=LOADER_BASE_ADDR
 
 
     [bits 32] ; 32位模式
+    ;创建页目录及页表
+    setup_page:
+        ; 进行逐字节清0
+        mov ecx,4096
+        mov esi,0
+        .clear_page_dir:
+            mov byte [PAGE_DIR_TABLE_POS + esi],0
+            inc esi
+            loop .clear_page_dir    ; 循环ecx=4096次
+        
+        ;创建页目录项(Page Directory Entry-PDE)
+        .create_pde:
+            mov eax,PAGE_DIR_TABLE_POS
+            add eax,0x1000              ; eax表示第一个 页表 的位置兼属性 
+            ;TODO:为何加上0x1000
+            mov ebx,eax                 ; 为.create_pte做准备,ebx为基址
+
+            ; 将页目录项 0 与 0xc00都存储为第一个页表的地址,每个页表 表示4MB内存，
+            ; 这样0xc03f_ffff以下的地址和 0x003f_ffff以下的地址都指向相同的页表 
+            ;TODO:what?什么意思?
+            ; 这是为将地址映射为内核地址做准备
+
+            or eax,PG_US_U | PG_RW_W | PG_P
+            ; 该 页目录项 属性:用户级别 | 可读可写 | 页表存在
+            mov [PAGE_DIR_TABLE_POS + 0x0],eax      ; 一个页表项占4个字节
+            mov [PAGE_DIR_TABLE_POS + 0xc00],eax
+            ; 0xc00表示第768个表占用的目录项(0xc00/4=768),
+            ; 0xc00以上的内存的 目录项 用于内核空间
+            ; 即页表指向的0xc0000_0000 ~ 0xffff_ffff共计1G属于内核
+            ; 0x0 ~ 0xbfff_ffff 共计3G属于用户进程
+            
+            sub eax,0x1000
+            mov [PAGE_DIR_TABLE_POS + 4092] , eax ;eax此时为PAGE_DIR_TABLE_POS
+            ; 让最后一个 页目录项 指向目录表自己的地址
+        
+        ;创建页表项(Page Table Entry-PTE)
+        mov ecx,256         ; 1M 低端内存 / 每页大小4k = 256
+                            ; 此时仅仅分配1MB内存（最大4MB,ecx=1024)
+        mov esi, 0
+        mov edx,PG_US_U | PG_RW_W | PG_P
+        .create_pte:
+            mov [ebx+esi*4],edx         ; 每个页表项4字节
+            ; 此时ebx已经通过上面eax赋值为0x101000,也就是第一个页表的地址
+            add edx,4096 ;TODO:?
+            loop .create_pte
+        
+        ; 创建内核其他页表的PDE
+        mov eax,PAGE_DIR_TABLE_POS
+        add eax,0x2000              ; 此时eax为第二个页表的位置
+        or eax,PG_US_U|PG_RW_W|PG_P
+        mov ebx,PAGE_DIR_TABLE_POS
+        mov ecx,254                 ; 范围为第769~1022的左右目录项数量
+        mov esi,769
+        .create_kernel_pde:
+            mov [ebx+esi*4],eax
+            inc esi
+            add eax,0x1000
+            loop .create_kernel_pde
+        
+        ret
+    
     p_mode_start:
         ; 初始化段寄存器
         mov ax,SELECTOR_DATA
@@ -343,41 +404,6 @@ section loader vstart=LOADER_BASE_ADDR
             mov byte [gs:0x08],'R'
             mov byte [gs:0x09],0xA4
 
-        ;创建页目录及页表
-        .setup_page:
-            ; 进行逐字节清0
-            mov ecx,4096
-            mov esi,0
-            .clear_page_dir:
-                mov byte [PAGE_DIR_TABLE_POS + esi],0
-                inc esi
-                loop .clear_page_dir    ; 循环ecx=4096次
-            
-            ;创建页目录项(Page Directory Entry-PDE)
-            .create_pde:
-                mov eax,PAGE_DIR_TABLE_POS
-                add eax,0x1000              ; eax表示第一个 页表 的位置兼属性 
-                ;TODO:为何加上0x1000
-                mov ebx,eax                 ; 为.create_pte做准备,ebx为基址
-
-                ; 将页目录项 0 与 0xc00都存储为第一个页表的地址,每个页表 表示4MB内存，
-                ; 这样0xc03f_ffff以下的地址和 0x003f_ffff以下的地址都指向相同的页表 
-                ;TODO:what?什么意思?
-                ; 这是为将地址映射为内核地址做准备
-
-                or eax,PG_US_U | PG_RW_W | PG_P
-                ; 该页表属性:用户级别 | 可读可写 | 页表存在
-                mov [PAGE_DIR_TABLE_POS + 0x0],eax      ; 一个页表项占4个字节
-                mov [PAGE_DIR_TABLE_POS + 0xc00],eax
-                ; 0xc00表示第768个表占用的目录项(0xc00/4=768),
-                ; 0xc00以上的内存的 目录项 用于内核空间
-                ; 即页表指向的0xc0000_0000 ~ 0xffff_ffff共计1G属于内核
-                ; 0x0 ~ 0xbfff_ffff 共计3G属于用户进程
-                
-                sub eax,0x1000
-                mov [PAGE_DIR_TABLE_POS + 4092] , eax ;eax此时为PAGE_DIR_TABLE_POS
-                ; 让最后一个目录项指向目录表自己的地址
-                ;TODO:止步于此
-
+        jmp setup_page
     xchg bx,bx      ;阻塞前魔术断点
     jmp $; 阻塞
