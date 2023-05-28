@@ -191,7 +191,7 @@ section loader vstart=LOADER_BASE_ADDR
 
         jmp dword SELECTOR_CODE:p_mode_start    ; 用无条件跳转指令清空cpu流水线指令缓存
 
-; 无法获取内存则报错挂起
+    ; 无法获取内存则报错挂起
     .error_hlt:
         ; 此时还在实模式，我们用实模式的打印字符串方式
         .print_error:
@@ -208,9 +208,13 @@ section loader vstart=LOADER_BASE_ADDR
 
     [bits 32] ; 32位模式
     ;创建页目录及页表
-    ; 使用二级页表方式：一个页目录有1024个页目录项，一个页目录（页表）
-    ;   有1024个页表项，一个页表项管理4KB空间，总共1024*1024*4KB=4GB
+    ; 使用二级页表方式：一个页目录有1024个页目录项。
+    ; 一个页目录项（页表）有1024个页表项，一个页表项管理4KB空间，总共1024*1024*4KB=4GB
+    ; 我们将页目录数据放在从 PAGE_DIR_TABLE_POS 开始的 1024*4B=4096B(4KB) 中
+    ; 页表数据放在从 PAGE_DIR_TABLE_POS + 4096B 后的 1024*4B=4096B(4KB) 中
+    ; 1024个页目录项与 1024个页表共计 8KB
     setup_page:
+        ; 初始化页目录项(1024个，每个4B = 4096B)
         ; 进行逐字节清0
         mov ecx,4096
         mov esi,0
@@ -222,8 +226,11 @@ section loader vstart=LOADER_BASE_ADDR
         ;创建页目录项(Page Directory Entry-PDE)
         .create_pde:
             mov eax,PAGE_DIR_TABLE_POS  ; 表示PDE放在出了低端1MB空间的第一个字节
-            add eax,0x1000              ; eax表示第一个 页表 的位置兼属性 
-            ;TODO:为何加上0x1000
+            add eax,0x1000              ; eax表示第一个 页表 的位置兼
+                                        ;   第一个 页表项 属性
+            ; eax = PAGE_DIR_TABLE_POS + 0x1000原因：
+            ;   1024个将要初始化的页目录占用了前(0x1000 = 4096B 的内存） 
+
             mov ebx,eax                 ; 为.create_pte做准备,ebx为基址
 
             ; 将页目录项 0 与 0xc00都存储为第一个页表的地址,每个页表 表示4MB内存，
@@ -232,38 +239,45 @@ section loader vstart=LOADER_BASE_ADDR
 
             or eax,PG_US_U | PG_RW_W | PG_P
             ; 该 页目录项 属性:用户级别 | 可读可写 | 页表存在
+            ; 此时eax的值符合一个页目录项的要求了：
+            ;   高20位指向页表的4k整数倍地址，低12位为相关属性
 
-            ; 创建两个页目录，一个给最低端loader的1MB, 一个给内核
-            mov [PAGE_DIR_TABLE_POS + 0x0],eax      ; 一个页表项占4个字节
-            mov [PAGE_DIR_TABLE_POS + 0xc00],eax
-            ; 0xc00表示第768个表占用的目录项(0xc00/4=768),
-            ; 0xc00以上的内存的 目录项 用于内核空间
+            ; 初始化0与768号页目录表
+            mov [PAGE_DIR_TABLE_POS + 0x0],eax
+            mov [PAGE_DIR_TABLE_POS + 0xc00],eax ; mov [PAGE_DIR_TABLE_POS + 768*4],eax
+            ; 0xc00表示第769个(768号)表占用的页目录项的号(0xc00/4B=768[占用了768个所以是第769个]),
+            ; 768号及以上的 目录项 (768~1023号) 用于内核空间
             ; 即页表指向的0xc0000_0000 ~ 0xffff_ffff共计1G属于内核
-            ; 0x0 ~ 0xbfff_ffff 共计3G属于用户进程
+            ; 0x0 ~ 0xbfff_ffff 共计3G属于用户进程与 loader(进入内核后可以不再占用)
+
+            ; 虚拟地址 3G~4G是内核占用，而物理地址0~4M放了所有的操作系统代码
+            ; 第一个 页目录项 管理的0~4MB与物理内存一一对应保证loader正常运行
             
             sub eax,0x1000
             mov [PAGE_DIR_TABLE_POS + 4092] , eax ;eax此时为PAGE_DIR_TABLE_POS
             ; 让最后一个(1023号） 页目录项 指向目录表自己的地址
+            ; 属性PG_US_U是为了给init进程(运行在用户空间)访问这个页目录项
         
-        ;创建页表项(Page Table Entry-PTE)
+        ;创建(第一个页表的)页表项(Page Table Entry-PTE)
         mov ecx,256         ; 初始化第一张页表(0~4MB)的前256个页表项(1MB)
-                            ; 原因：我们的操作系统代码只使用内存最低端1MB
+                            ; 原因：我们的操作系统 代码 只使用内存最低端1MB
+                            ; 内核会处理缺页中断所以不用担心
         mov esi, 0
-        mov edx,PG_US_U | PG_RW_W | PG_P
+        mov edx,PG_US_U | PG_RW_W | PG_P ; 高20位为空表示管理0~4KB
         .create_pte:
             mov [ebx+esi*4],edx         ; 每个页表项4字节
             ; 此时ebx已经通过上面eax赋值为0x101000,也就是第一个页表的地址
-            add edx,4096 ;TODO:?
+            add edx,4096 ; 一个页表项管理4KB=4096B
             inc esi
             loop .create_pte
         
-        ; 创建内核其他页表的PDE
-        mov eax,PAGE_DIR_TABLE_POS
-        add eax,0x2000              ; 此时eax为第二个页表的位置
-        or eax,PG_US_U|PG_RW_W|PG_P
-        mov ebx,PAGE_DIR_TABLE_POS
-        mov ecx,254                 ; 范围为769~1022号目录项
-                                    ;  第1023个目录已经在上文设置
+        ; 创建内核的PDE(第769[768号]个~第1023[1022号]个页目录项)
+        mov eax, PAGE_DIR_TABLE_POS
+        add eax, 0x2000              ; 此时eax为第二个页表的位置
+        or eax, PG_US_U | PG_RW_W | PG_P
+        mov ebx, PAGE_DIR_TABLE_POS
+        mov ecx, 254                 ; 范围为769~1022号目录项(1022-769+1=254)
+                                    ;  第1024个(1023号)目录已经在上文设置
                                     ; 此时初始化的是管理内核空间的页目录项
         mov esi,769
         .create_kernel_pde:

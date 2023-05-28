@@ -23,7 +23,6 @@ Bochs x86 Emulator 2.6.11
 > 版本2.6+，因为bochs参数不同，比如2.5 bximg -func 在2.6版本改成了-mode
 >
 > [Bochs2.6.11配置安装参考](https://www.cnblogs.com/oasisyang/archive/2021/09/30/15358137.html "Bochs2.6.11配置安装参考")
->
 
 GNU Make 4.2.1
 
@@ -32,3 +31,5 @@ GNU Make 4.2.1
 ## git clone之后要做的事
 
 在references下运行download-references.sh脚本下载参考项目，当然也可以不下载(
+
+[推荐up 看见南山 的视频作为参考](https://www.bilibili.com/video/BV1kg4y1V7TV/?share_source=copy_web&vd_source=6a59c86042f2b2c62159e91ee5e54dc5)
