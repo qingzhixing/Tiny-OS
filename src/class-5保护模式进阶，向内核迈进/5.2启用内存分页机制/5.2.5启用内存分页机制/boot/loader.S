@@ -320,15 +320,21 @@ section loader vstart=LOADER_BASE_ADDR
 
         ;将描述符地址以及偏移量写入内存gdt_ptr,一会儿用新地址重新加载
         sgdt [gdt_ptr]              ; 倒出并储存到原来gdt所有的位置
+        ; 处理gdtr原因：进入内核之后虚拟地址0~4MB需要让出来给用户进程
+        ;   如果不将gdtr基址抬高3GB则0~4MB虚拟地址还是需要与
+        ;   0~4MB物理地址建立一一对应的关系，这是我们不想要的.
 
-        mov ebx, [gdt_ptr+2]
-        ; gdt_ptr处的值有两部分：前部分2字节大小的GDT界限，其后为4字节大小的地址
-        or dword [ebx + 0x18 + 4],0xc000_0000 
-        ; 显存段描述符为第三个描述符，一个描述符大小8字节，故ebx要加上0x18
+
+        ; gdt_ptr处的值有两部分：前部分2字节大小的GDT界限(GDT_LIMIT)，
+        ; 其后为4字节大小的基址(GDT_BASE)
+        mov ebx, [gdt_ptr+2]    ; 此时ebx为GDT_BASE
+        add dword [ebx + 0x18 + 4],0xc000_0000 
+        ; 显存段描述符为第三个描述符，一个描述符大小8B，故ebx要加上0x18=24B
         ;  才能访问显存段描述符。段描述符记录段基址最高位部分是在段描述符的
-        ;  高4字节的最高1字节,故还要加上0x4
+        ;  高4字节的最高1字节,故还要加上4B
 
         ;将 gdt视频描述符中的段基址+0xc000_0000使其成为内核所在的高地址
+        ; 此时显存gdt通过访问升高3GB之后的虚拟地址实际上还是在访问原来同样的物理地址
         add dword [gdt_ptr+2],0xc000_0000
 
         add esp,0xc000_0000         ; 栈指针同样映射到内核地址
@@ -339,7 +345,7 @@ section loader vstart=LOADER_BASE_ADDR
 
         ; 打开cr0位段pg位（第31位）
         mov eax,cr0
-        or eax,0x8000_0000  ; 0x1<<31
+        or eax,0x8000_0000  ; 1b<<31
         mov cr0,eax
 
         xchg bx,bx
@@ -348,7 +354,7 @@ section loader vstart=LOADER_BASE_ADDR
         ; 开启分页后，用gdt新地址重新加载
         lgdt [gdt_ptr]      ;重新加载
         mov byte [gs:160],'V'
-        ;   视频段段地址已经被更新，用自负v表示virtual addr
+        ;   视频段段地址已经被更新，用字符v表示virtual addr
 
     xchg bx,bx      ;阻塞前魔术断点
     jmp $; 阻塞
