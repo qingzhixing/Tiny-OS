@@ -314,6 +314,8 @@ section loader vstart=LOADER_BASE_ADDR
 
     [bits 32] ; 32位模式
     ;创建页目录及页表
+    ; 使用二级页表方式：一个页目录有1024个页目录项，一个页目录（页表）
+    ;   有1024个页表项，一个页表项管理4KB空间，总共1024*1024*4KB=4GB
     setup_page:
         ; 进行逐字节清0
         mov ecx,4096
@@ -332,7 +334,6 @@ section loader vstart=LOADER_BASE_ADDR
 
             ; 将页目录项 0 与 0xc00都存储为第一个页表的地址,每个页表 表示4MB内存，
             ; 这样0xc03f_ffff以下的地址和 0x003f_ffff以下的地址都指向相同的页表 
-            ;TODO:what?什么意思?
             ; 这是为将地址映射为内核地址做准备
 
             or eax,PG_US_U | PG_RW_W | PG_P
@@ -348,18 +349,18 @@ section loader vstart=LOADER_BASE_ADDR
             
             sub eax,0x1000
             mov [PAGE_DIR_TABLE_POS + 4092] , eax ;eax此时为PAGE_DIR_TABLE_POS
-            ; 让最后一个(第1024个） 页目录项 指向目录表自己的地址
+            ; 让最后一个(1023号） 页目录项 指向目录表自己的地址
         
         ;创建页表项(Page Table Entry-PTE)
-        mov ecx,256         ; 1M 低端内存 / 每页大小4k = 256
-                            ; 此时仅仅分配低端1MB内存（最大4MB,ecx=1024)
-                            ; 0x0~0xfffff
+        mov ecx,256         ; 初始化第一张页表(0~4MB)的前256个页表项(1MB)
+                            ; 原因：我们的操作系统代码只使用内存最低端1MB
         mov esi, 0
         mov edx,PG_US_U | PG_RW_W | PG_P
         .create_pte:
             mov [ebx+esi*4],edx         ; 每个页表项4字节
             ; 此时ebx已经通过上面eax赋值为0x101000,也就是第一个页表的地址
             add edx,4096 ;TODO:?
+            inc esi
             loop .create_pte
         
         ; 创建内核其他页表的PDE
@@ -367,9 +368,9 @@ section loader vstart=LOADER_BASE_ADDR
         add eax,0x2000              ; 此时eax为第二个页表的位置
         or eax,PG_US_U|PG_RW_W|PG_P
         mov ebx,PAGE_DIR_TABLE_POS
-        mov ecx,254                 ; 范围为第769~1022的左右目录项数量
-                                    ;    TODO:    ^    为何不是1023
+        mov ecx,254                 ; 范围为769~1022号目录项
                                     ;  第1023个目录已经在上文设置
+                                    ; 此时初始化的是管理内核空间的页目录项
         mov esi,769
         .create_kernel_pde:
             mov [ebx+esi*4],eax
