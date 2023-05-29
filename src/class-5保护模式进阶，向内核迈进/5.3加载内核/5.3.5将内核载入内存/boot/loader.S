@@ -558,9 +558,6 @@ section loader vstart=LOADER_BASE_ADDR
         ; 刷新流水线
         jmp SELECTOR_CODE:enter_kernel
 
-        mov byte [gs:160],'V'
-        ;   视频段段地址已经被更新，用字符v表示virtual addr
-
     ; 将kernel.bin中的segment拷贝到编译的地址
     kernel_init:
         xor eax,eax
@@ -606,9 +603,32 @@ section loader vstart=LOADER_BASE_ADDR
     ; 输入:dst目标地址, src复制起始地址, size复制的字节数
     ; 输出:无
     mem_cpy:
+        cld     ; 清除方向位,后面movsb用到
 
+        push ebp ; 后面要更新栈底，入栈备份
+        mov ebp, esp    ; 将ebp放到栈顶，此时可以通过偏移量访问参数
+        push ecx        ; rep指令用到了ecx，备份
+
+        mov edi,[ebp+8]     ; dst
+        mov esi,[ebp+12]    ; src
+        mov ecx,[ebp+16]    ; size
+        rep movsb           ; 逐字节拷贝
+        ; movsb：搬运1字节，从DS:SI 搬到ES:DI
+        ; 指针递增由CPU自动完成(方向看方向位，在前面已经清零，为往后扩展）
+        ; DS,ES在进入保护模式之初已经被赋值为同样选择子，指向同一个段描述符
+
+        ; 恢复备份
+        pop ecx
+        pop ebp
+
+        ret
 
     enter_kernel:
+        mov byte [gs:160],'V'
+        ;   视频段段地址已经被更新，用字符v表示virtual addr
         call kernel_init
         mov esp,0xc009f000          ; 0x9f000对齐4KB为以后pcb(程序控制块)做准备
+
+        mov byte [gs:160],'R' ; for test
+        xchg bx,bx                  ; 断点测试
         jmp KERNEL_ENTRY_POINT      ; 用0x1500测试，ok

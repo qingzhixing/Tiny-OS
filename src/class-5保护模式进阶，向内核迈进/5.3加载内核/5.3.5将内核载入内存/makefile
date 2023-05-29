@@ -23,12 +23,13 @@ $(KERNEL_BUILD_PATH)/%.bin:$(KERNEL_BUILD_PATH)/%.o
 	ld $< -Ttext 0xc0001500 -e main -o $@
 
 $(BUILD)/master.img:$(BOOT_BUILD_PATH)/mbr.bin\
-					$(BOOT_BUILD_PATH)/loader.bin
+					$(BOOT_BUILD_PATH)/loader.bin\
+					$(KERNEL_BUILD_PATH)/main.bin
 	$(shell mkdir -p $(BUILD))
 	yes | bximage -q -mode=create -hd=16M -sectsize=512 -imgmode=flat $@
 	dd if=$(BOOT_BUILD_PATH)/mbr.bin of=$@ bs=512 count=1 conv=notrunc
 	dd if=$(BOOT_BUILD_PATH)/loader.bin of=$@ bs=512 count=4 seek=2 conv=notrunc
-	dd if=$(KERBEL_BUILD_PATH)/main.bin of=$@ bs=512 count=200 seek=9 conv=notrunc
+	dd if=$(KERNEL_BUILD_PATH)/main.bin of=$@ bs=512 count=200 seek=9 conv=notrunc
 
 .PHONY: clean
 clean:

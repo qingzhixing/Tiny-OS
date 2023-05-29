@@ -10,7 +10,7 @@ KERNEL_START_SECTOR equ 0x9         ; kernel在硬盘上的扇区号(LBA)
 KERNEL_BIN_BASE_ADDR equ 0x70000    ; 0x7e00~0x9fbff 都可以使用
                                     ; 0x70000~0x9fbff=0x2fbff=190KB,内核不超过100KB
 KERNEL_SECTOR_SIZE equ 200          ; kernel占用的扇区数
-KERNEL_ENTRY_POINT equ 0x1500       ; TODO:为啥?
+KERNEL_ENTRY_POINT equ 0xc0001500   ; 与ld中书写的虚拟内存地址相同
 
 ; ---------------------- gdt 段描述符属性  ----------------------
 ; gdt描述符属性
