@@ -20,7 +20,7 @@ $(KERNEL_BUILD_PATH)/%.o:$(KERNEL_SRC_PATH)/%.c
 # 0x1500必定为loader.bin之后的内存，经过elf解析初始化之后的代码放在那儿
 $(KERNEL_BUILD_PATH)/%.bin:$(KERNEL_BUILD_PATH)/%.o
 	$(shell mkdir -p $(KERNEL_BUILD_PATH))
-	ld $< -Ttext 0xc0001500 -e main -o $@
+	ld -m elf_i386 $< -Ttext 0xc0001500 -e main -o $@
 
 $(BUILD)/master.img:$(BOOT_BUILD_PATH)/mbr.bin\
 					$(BOOT_BUILD_PATH)/loader.bin\

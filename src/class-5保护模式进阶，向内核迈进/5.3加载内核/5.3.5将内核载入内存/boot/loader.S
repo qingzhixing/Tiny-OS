@@ -479,7 +479,7 @@ section loader vstart=LOADER_BASE_ADDR
             .go_on_read:
                 in ax,dx            ; 一次读2字节,16位
                 mov [ebx],ax
-                add ebx,2            ; 将ax放入[bx],并移动bx指针位置
+                add ebx,2            ; 将ax放入[ebx],并移动ebx指针位置
                 loop .go_on_read    ; cx为循环计数器
 
         ret
@@ -566,11 +566,14 @@ section loader vstart=LOADER_BASE_ADDR
         xor edx,edx     ; dx记录program header尺寸，即e_phentsize
 
         ; 处理 elf header
-        mov dx,[KERNEL_BIN_BASE_ADDR+42]; 偏移42字节处的属性是e_phentsize,
+        mov dx,[KERNEL_BIN_BASE_ADDR+42]    ; 偏移42字节处的属性是e_phentsize,
                         ;  表示program header table中每个program header大小
-        mov ebx,[KERNEL_BIN_BASE_ADDR+28]; 表示e_phoff，程序头表 相对偏移量位置
+        mov ebx,[KERNEL_BIN_BASE_ADDR+28]   ; 表示e_phoff，程序头表 相对偏移量位置
                 ; 也表示第一个 程序头(program header)在文件中的偏移量
-        mov cx,[KERNEL_BIN_BASE_ADDR+44]; e_phnum,program header数
+        add ebx,KERNEL_BIN_BASE_ADDR        ; ebx为程序头表的实际地址
+        
+        xchg bx,bx                  ; 断点测试
+        mov cx,[KERNEL_BIN_BASE_ADDR+44]    ; e_phnum,program header数
 
         .each_segment:
             cmp byte [ebx+0], PT_NULL
@@ -597,6 +600,7 @@ section loader vstart=LOADER_BASE_ADDR
             add ebx,edx     ; edx为program header大小，即e_phentsize
                             ; 此时ebx指向下一个program header
             loop .each_segment
+
         ret
 
     ; 逐字节拷贝 mem_cpy(dst,src,size)
@@ -629,6 +633,6 @@ section loader vstart=LOADER_BASE_ADDR
         call kernel_init
         mov esp,0xc009f000          ; 0x9f000对齐4KB为以后pcb(程序控制块)做准备
 
-        mov byte [gs:160],'R' ; for test
+        mov byte [gs:160],'T'       ; for test
         xchg bx,bx                  ; 断点测试
-        jmp KERNEL_ENTRY_POINT      ; 用0x1500测试，ok
+        jmp KERNEL_ENTRY_POINT
