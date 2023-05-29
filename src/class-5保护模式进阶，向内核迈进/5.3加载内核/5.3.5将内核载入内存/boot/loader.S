@@ -1,4 +1,120 @@
-%include "include.S"
+; %include "include.S"
+include:
+    ; 配置文件
+    ; ---------------------- loader & kernel define ----------------------
+    LOADER_BASE_ADDR equ 0x900          ; loader在内存中的位置，由mbr放入
+    LOADER_START_SECTOR equ 0x2         ; loader在硬盘上的逻辑扇区地址，即LBA地址，放在第二块（从0开始）扇区
+    LOADER_SECTOR_SIZE equ 4            ; loader占用的扇区数
+
+    PAGE_DIR_TABLE_POS equ 0x100000     ;页目录物理地址,0x100000为 出了低端1MB空间的第一个字节
+
+    KERNEL_START_SECTOR equ 0x9         ; kernel在硬盘上的扇区号(LBA)
+    KERNEL_BIN_BASE_ADDR equ 0x70000    ; 0x7e00~0x9fbff 都可以使用
+                                        ; 0x70000~0x9fbff=0x2fbff=190KB,内核不超过100KB
+    KERNEL_SECTOR_SIZE equ 200          ; kernel占用的扇区数
+    KERNEL_ENTRY_POINT equ 0x1500
+
+    ; ---------------------- gdt 段描述符属性  ----------------------
+    ; gdt描述符属性
+    DESC_G_4K   equ	  1_000_0000_0000_0000_0000_0000b   ;  描述符G位粒度，为4KB
+    DESC_D_32   equ	   1_00_0000_0000_0000_0000_0000b   ;  操作数为32位
+    DESC_L	    equ	    0_0_0000_0000_0000_0000_0000b   ;  64位代码标记，0为使用32位代码段，目前属于保留位
+    DESC_AVL    equ	      0_0000_0000_0000_0000_0000b	;  此位无意义，留给操作系统用的，暂置为0
+    DESC_P	    equ		           1_000000000000000b   ; 段存在标记，供cpu检查，1则为存在
+    DESC_DPL_0  equ		            00_0000000000000b   ; 特权级为0,最高特权级
+    DESC_DPL_1  equ		            01_0000000000000b   ; 特权级1
+    DESC_DPL_2  equ		            10_0000000000000b   ; 特权级2
+    DESC_DPL_3  equ		            11_0000000000000b   ; 特权级3
+    DESC_S_sys  equ		              0_000000000000b   ; 系统段S位
+
+    DESC_EMPTY_LOW4  equ 0x0000_0000
+    DESC_EMPTY_HIGH4 equ 0x000_00000
+
+
+    ; 代码段GDT:
+    DESC_BASE_CODE3     equ 0x00                            ; 段基址31~24位:第三部分
+    DESC_BASE_CODE2     equ 0x00                            ; 段基址23~16位，第二部分
+    DESC_BASE_CODE1     equ 0x0000                          ; 段基址15~0位，第一部分，平坦模式下段基址为0
+
+    DESC_LIMIT_CODE2    equ 1111_0000_0000_0000_0000b       ; 代码段段界限19~16位,第二部分
+    DESC_LIMIT_CODE1    equ 0xFFFF                          ; 代码段界限15~0位，第一部分
+                                                            ;  与第一部分将组成20个二进制1即0xFFFFF
+
+    DESC_S_CODE equ		     1_000000000000b                ; S位为1表示为普通内存段,非系统段
+
+    DESC_TYPE_CODE  equ	      1000_00000000b	            ; x=1,c=0,r=0,a=0 代码段是
+                                                            ;  可执行的,非依从的,不可读的,已访问位a清0.  
+
+    ; 代码段gdt低32位即低4字节
+    DESC_CODE_LOW4 equ (DESC_BASE_CODE1<<16)+DESC_LIMIT_CODE1
+
+    ; 代码段gdt高32位即高4字节
+    DESC_CODE_HIGH4 equ (DESC_BASE_CODE3 << 24) + DESC_G_4K + DESC_D_32 +\
+        DESC_L + DESC_AVL + DESC_LIMIT_CODE2 + DESC_P +\
+        DESC_DPL_0 + DESC_S_CODE + DESC_TYPE_CODE + DESC_BASE_CODE2
+    ; 0x00<<24 : 31~24位为段基址第三部分. 其次是G位, D/B, L, AVL, 段界限2,
+    ; P, DPL, S, TYPE, 段基址第二部分.
+
+
+    ; 数据段GDT
+    DESC_BASE_DATA3     equ DESC_BASE_CODE3                 ; 段基址31~24位:第三部分
+    DESC_BASE_DATA2     equ DESC_BASE_CODE2                 ; 段基址23~16位，第二部分
+    DESC_BASE_DATA1     equ DESC_BASE_CODE1                 ; 段基址15~0位，第一部分，平坦模式下段基址为0
+
+    DESC_LIMIT_DATA2  equ DESC_LIMIT_CODE2                  ; 同 DESC_LIMIT_CODE2
+    DESC_LIMIT_DATA1  equ DESC_LIMIT_CODE1
+
+    DESC_S_DATA equ	  DESC_S_CODE                           ; 普通数据段，非系统段
+
+    DESC_TYPE_DATA  equ	      0010_00000000b	            ; x=0,e=0,w=1,a=0 数据段是
+                                                            ;  不可执行的,向上扩展的,可写的,已访问位a清0.
+
+    ; 数据段gdt低32位
+    DESC_DATA_LOW4 equ (DESC_BASE_DATA1<<16)+DESC_LIMIT_DATA1
+    ; 数据段gdt高32位
+    DESC_DATA_HIGH4 equ (DESC_BASE_DATA3 << 24) + DESC_G_4K + DESC_D_32 +\
+        DESC_L + DESC_AVL + DESC_LIMIT_DATA2 + DESC_P +\
+        DESC_DPL_0 + DESC_S_DATA + DESC_TYPE_DATA + DESC_BASE_DATA2
+
+
+    ; 显存段GDT
+    DESC_BASE_VIDEO3     equ 0x00
+    DESC_BASE_VIDEO2     equ 0x0b
+    DESC_BASE_VIDEO1     equ 0x8000
+    ; 段基址为显存文本模式段地址:0xb8000,为了方便操作，不使用平坦模型
+
+    DESC_LIMIT_VIDEO2   equ 0000_000000000000000b           ; 显存段描述符段界限
+    DESC_LIMIT_VIDEO1   equ 0x7                             ; limit = (0xbffff-0xb8000)/4k = 0x7
+                                                            ; (0x0~0x7)*4k=32字节表示显卡
+                                                            ; 文本模式0xb80000~0xbffff共32字节
+
+    DESC_TYPE_VIDEO     equ DESC_TYPE_DATA
+
+    ; 显存段gdt低32位
+    DESC_VIDEO_LOW4 equ (DESC_BASE_VIDEO1<<16)+DESC_LIMIT_DATA1
+    ; 显存段gdt高32位
+    DESC_VIDEO_HIGH4 equ (DESC_BASE_VIDEO3 << 24) + DESC_G_4K + DESC_D_32 +\
+        DESC_L + DESC_AVL + DESC_LIMIT_VIDEO2 + DESC_P +\
+        DESC_DPL_0 + DESC_S_DATA + DESC_TYPE_DATA + DESC_BASE_VIDEO2
+
+    ; ---------------------- 页表 相关属性 ----------------------
+    PG_P equ 1b             ; 页表 存在位
+    PG_RW_R equ 00b         ; 读写位-可读不可写 
+    PG_RW_W equ 10b         ; 读写位-可读可写
+    PG_US_S equ 000b        ; 管理者级别 可访问级别:0,1,2
+    PG_US_U equ 100b        ; 用户级别 可访问级别:0,1,2,3
+
+    ; ---------------------- 选择子属性 ----------------------
+    ; 请求特权级:0,1,2,3
+    RPL0  equ   00b
+    RPL1  equ   01b
+    RPL2  equ   10b
+    RPL3  equ   11b
+    TI_GDT	 equ   000b
+    TI_LDT	 equ   100b
+
+    ; ---------------------- 程序段(program segment) ----------------------
+    PT_NULL equ 0
 
 section loader vstart=LOADER_BASE_ADDR
     LOADER_STACK_TOP equ LOADER_BASE_ADDR
@@ -286,6 +402,88 @@ section loader vstart=LOADER_BASE_ADDR
         
         ret
     
+    ; 在32位模式下读取硬盘n个扇区
+    ; eax=LBA扇区号
+    ; ebx=将数据写入的内存地址
+    ; ecx=读入的扇区数
+    rd_disk_m_32:
+        ; 数据预处理
+        mov esi,eax     ; 备份eax,源变址寄存器
+        mov di,cx       ; 备份cx,读取扇区数
+
+        ; 第一步：设置要读写的扇区数量
+        .step_1:
+            mov dx,0x1f2    ; 调用端口号，写操作为设置Primary通道的读取扇区数量
+            mov al,cl       ; 设置读取位数
+            out dx,al       ; 写操作为设置Primary通道的读取扇区数量
+
+            mov eax,esi     ; 恢复ax
+
+        ; 第二步：将LBA地址存入 0x1f3 ~ 0x1f6 端口
+        .step_2:
+            ; LBA地址7~0位存入0x1f3端口
+            mov dx,0x1f3
+            out dx,al
+
+            ; LBA地址15~8位写入0x1f4端口
+            mov cl,8        ; eax右移位数
+            
+            shr eax,cl      ; 右移8位
+            mov dx,0x1f4
+            out dx,al
+
+            ; LBA地址23~16位写入0x1f5端口
+            shr eax,cl      ; 再次右移8位，一共右移16位
+            mov dx,0x1f5
+            out dx,al
+
+            ; 将LBA地址24~27位写入0x1f6端口，设置属性
+            shr eax,cl      ; 再次右移8位，一共右移24位
+            and al,0x0f     ; 将24~27位清零
+            or al,0xe0      ; 设置27~24位为1110,表示LBA模式，使用主盘
+            mov dx,0x1f6
+            out dx,al
+
+        ; 第三步，向0x1f7写入读命令：0x20
+        .step_3:
+            ; 0x1f7端口写操作表示命令字，读表示硬盘状态
+            mov dx,0x1f7
+            mov al,0x20
+            ; 写入命令字
+            out dx,al
+
+        ; 第四步：检测硬盘状态
+        .step_4:
+            .not_ready:
+                ; sleep some time
+                nop
+                ; 读操作时寄存器在前
+                in al,dx
+                and al,0x88         ; 第3位为1表示硬盘控制器已经准备好数据传输
+                                    ; 第7位为1表示正在繁忙
+                                    ; 这里我们只需要这两位，所以将其单独取出
+                cmp al,0x08         ; 准备好且不繁忙jne则为0
+                                    ; 繁忙时其他位均无效
+                jne .not_ready      ; 未准备好则继续等待
+
+            ; 第五步：从0x1f6端口中读取数据
+            ; 数据预处理
+            mov ax,di               ; 读取扇区数
+            mov dx,256
+            mul dx                  ; ax*=dx,即ax=di*256(结果为32位，此时只用到了低16位结果)
+            mov cx,ax               ; 乘积转移到cx中,作为循环计数器
+            ; di为读取扇区数，一个扇区512字节，每次读入一个字(此时在16位系统，所以为16位,2字节)
+            ; 共需 di* [512字节/(1字=2字节)]，所以di*256
+            mov dx,0x1f0
+
+            .go_on_read:
+                in ax,dx            ; 一次读2字节,16位
+                mov [ebx],ax
+                add ebx,2            ; 将ax放入[bx],并移动bx指针位置
+                loop .go_on_read    ; cx为循环计数器
+
+        ret
+
     p_mode_start:
         ; 初始化段寄存器
         mov ax,SELECTOR_DATA
@@ -312,6 +510,14 @@ section loader vstart=LOADER_BASE_ADDR
             
             mov byte [gs:0x08],'R'
             mov byte [gs:0x09],0xA4
+
+        ;加载kernel
+        mov eax,KERNEL_START_SECTOR     ; kernel.bin所在扇区号
+        mov ebx,KERNEL_BIN_BASE_ADDR    ; kernel.bin写入内存的位置
+        mov ecx,KERNEL_SECTOR_SIZE      ; kernel占用扇区数
+
+        call rd_disk_m_32
+
 
         ;创建页目录及页表并初始化内存位图
         call setup_page
@@ -346,13 +552,63 @@ section loader vstart=LOADER_BASE_ADDR
         or eax,0x8000_0000  ; 1b<<31
         mov cr0,eax
 
-        xchg bx,bx
-
-
         ; 开启分页后，用gdt新地址重新加载
         lgdt [gdt_ptr]      ;重新加载
+
+        ; 刷新流水线
+        jmp SELECTOR_CODE:enter_kernel
+
         mov byte [gs:160],'V'
         ;   视频段段地址已经被更新，用字符v表示virtual addr
 
-    xchg bx,bx      ;阻塞前魔术断点
-    jmp $; 阻塞
+    ; 将kernel.bin中的segment拷贝到编译的地址
+    kernel_init:
+        xor eax,eax
+        xor ebx,ebx     ; 记录程序头表地址
+        xor ecx,ecx     ; cx记录程序头表中program header数量
+        xor edx,edx     ; dx记录program header尺寸，即e_phentsize
+
+        ; 处理 elf header
+        mov dx,[KERNEL_BIN_BASE_ADDR+42]; 偏移42字节处的属性是e_phentsize,
+                        ;  表示program header table中每个program header大小
+        mov ebx,[KERNEL_BIN_BASE_ADDR+28]; 表示e_phoff，程序头表 相对偏移量位置
+                ; 也表示第一个 程序头(program header)在文件中的偏移量
+        mov cx,[KERNEL_BIN_BASE_ADDR+44]; e_phnum,program header数
+
+        .each_segment:
+            cmp byte [ebx+0], PT_NULL
+            ; 等于PT_NULL表示这个program header未使用
+            je .PTNULL
+
+            ; 为函数memcpy压入参数，参数从右往左依次压入
+            ; 函数原型类似于memcpy(dst,src,size)
+            ; 第三个参数:size
+            push dword [ebx+16]; 此处为program header的p_filesz
+
+            ; 第二个参数:src
+            mov eax, [ebx+4]; p_offset:段在文件中起始偏移字节
+            add eax,KERNEL_BIN_BASE_ADDR; 此时eax为该段物理地址
+            push eax
+
+            ;第一个参数：目标地址
+            push dword [ebx+8]; p_vaddr:本段在内存中的起始虚拟地址
+
+            call mem_cpy        ;调用mem_cpy完成段复制
+            add esp,12          ; 清理栈中压入的三个参数(栈从高位往低位扩展)
+
+        .PTNULL:
+            add ebx,edx     ; edx为program header大小，即e_phentsize
+                            ; 此时ebx指向下一个program header
+            loop .each_segment
+        ret
+
+    ; 逐字节拷贝 mem_cpy(dst,src,size)
+    ; 输入:dst目标地址, src复制起始地址, size复制的字节数
+    ; 输出:无
+    mem_cpy:
+
+
+    enter_kernel:
+        call kernel_init
+        mov esp,0xc009f000          ; 0x9f000对齐4KB为以后pcb(程序控制块)做准备
+        jmp KERNEL_ENTRY_POINT      ; 用0x1500测试，ok
