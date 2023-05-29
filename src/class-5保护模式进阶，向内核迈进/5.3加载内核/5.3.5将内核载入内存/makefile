@@ -13,14 +13,14 @@ $(BOOT_BUILD_PATH)/%.bin:$(BOOT_SRC_PATH)/%.S
 # 处理.c to .o
 $(KERNEL_BUILD_PATH)/%.o:$(KERNEL_SRC_PATH)/%.c
 	$(shell mkdir -p $(KERNEL_BUILD_PATH))
-	gcc $< -c -o $@
+	gcc $< -m32 -c -o $@
 
 # 处理 kernel:.o to .bin
 # 0xc0001500为内核入口虚拟地址:物理地址0x1500
 # 0x1500必定为loader.bin之后的内存，经过elf解析初始化之后的代码放在那儿
 $(KERNEL_BUILD_PATH)/%.bin:$(KERNEL_BUILD_PATH)/%.o
 	$(shell mkdir -p $(KERNEL_BUILD_PATH))
-	ld -m elf_i386 $< -Ttext 0xc0001500 -e main -o $@
+	ld $< -N -m elf_i386 -Ttext 0xc0001500 -e main -o $@
 
 $(BUILD)/master.img:$(BOOT_BUILD_PATH)/mbr.bin\
 					$(BOOT_BUILD_PATH)/loader.bin\
