@@ -572,7 +572,6 @@ section loader vstart=LOADER_BASE_ADDR
                 ; 也表示第一个 程序头(program header)在文件中的偏移量
         add ebx,KERNEL_BIN_BASE_ADDR        ; ebx为程序头表的实际地址
         
-        xchg bx,bx                  ; 断点测试
         mov cx,[KERNEL_BIN_BASE_ADDR+44]    ; e_phnum,program header数
 
         .each_segment:
@@ -616,11 +615,15 @@ section loader vstart=LOADER_BASE_ADDR
         mov edi,[ebp+8]     ; dst
         mov esi,[ebp+12]    ; src
         mov ecx,[ebp+16]    ; size
+
+        xchg bx,bx                  ; 断点测试
+        
         rep movsb           ; 逐字节拷贝
         ; movsb：搬运1字节，从DS:SI 搬到ES:DI
         ; 指针递增由CPU自动完成(方向看方向位，在前面已经清零，为往后扩展）
         ; DS,ES在进入保护模式之初已经被赋值为同样选择子，指向同一个段描述符
 
+        xchg bx,bx                  ; 断点测试
         ; 恢复备份
         pop ecx
         pop ebp
