@@ -617,7 +617,7 @@ section loader vstart=LOADER_BASE_ADDR
         mov ecx,[ebp+16]    ; size
 
         xchg bx,bx                  ; 断点测试
-        
+
         rep movsb           ; 逐字节拷贝
         ; movsb：搬运1字节，从DS:SI 搬到ES:DI
         ; 指针递增由CPU自动完成(方向看方向位，在前面已经清零，为往后扩展）

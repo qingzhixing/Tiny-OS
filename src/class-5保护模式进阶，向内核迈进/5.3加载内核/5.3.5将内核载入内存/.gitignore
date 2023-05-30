@@ -3,3 +3,4 @@
 master.img.lock
 bochs.out
 bx_enh_dbg.ini
+*.o
