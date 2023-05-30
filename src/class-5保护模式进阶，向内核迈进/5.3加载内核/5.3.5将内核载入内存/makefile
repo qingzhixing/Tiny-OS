@@ -21,6 +21,7 @@ $(KERNEL_BUILD_PATH)/%.o:$(KERNEL_SRC_PATH)/%.c
 $(KERNEL_BUILD_PATH)/%.bin:$(KERNEL_BUILD_PATH)/%.o
 	$(shell mkdir -p $(KERNEL_BUILD_PATH))
 	ld $< -N -m elf_i386 -Ttext 0xc0001500 -e main -o $@
+	strip --remove-section=.note.gnu.property $@
 
 $(BUILD)/master.img:$(BOOT_BUILD_PATH)/mbr.bin\
 					$(BOOT_BUILD_PATH)/loader.bin\
@@ -39,4 +40,5 @@ clean:
 bochs:$(BUILD)/master.img
 	bochs -q -f bochsrc.disk
 
-test:$(KERNEL_BUILD_PATH)/main.bin
+test:$(KERNEL_BUILD_PATH)/main.o\
+	$(KERNEL_BUILD_PATH)/main.bin
