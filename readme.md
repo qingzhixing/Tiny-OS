@@ -28,6 +28,14 @@ GNU Make 4.2.1
 
 > 这个不知道版本有啥关系，反正能用makefile的就行了
 
+gcc version 9.4.0 (Ubuntu 9.4.0-1ubuntu1~20.04.1)
+
+GNU ld (GNU Binutils for Ubuntu) 2.34
+
+NASM version 2.14.02
+
+Linux架构：x86_64
+
 ## git clone之后要做的事
 
 在references下运行download-references.sh脚本下载参考项目，当然也可以不下载(
