@@ -1,8 +1,10 @@
-int main()
+#include "print.h"
+void main(void)
 {
-    while (1)
+    uint8_t kernelMessage[] = "kernel message\n";
+    uint8_t pointer = 0;
+    while (kernelMessage[pointer] != '\0')
     {
-        // empty loop
+        put_char(kernelMessage[pointer++]);
     }
-    return 0;
 }
