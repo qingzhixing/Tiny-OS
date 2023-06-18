@@ -4,7 +4,7 @@ SELECTOR_VIDEO equ (0x0003<<3) + TI_GDT + RPL0
 
 [bits 32]
 section .text
-    ; put_char:将栈中一个字符写入光标所在处
+    ; (cdecl)put_char:将栈中一个字符写入光标所在处
     global put_char ; 使外部可见
     put_char:
         pushad          ; 备份所有寄存器(懒得一个一个push了)
@@ -34,7 +34,7 @@ section .text
                     ; 故实际使用时要将 bx * 2获取字符显存地址
 
         ; 从栈中获取待打印的字符
-        mov ecx,[esp+36]    ;pushad:32byte + 主调函数返回地址:4byte = 36
+        mov cl,[esp+36]     ; pushad:32byte + 主调函数返回地址:4byte = 36
         cmp cl,0xd          ; CR控制字符
         je .is_carriage_return
         cmp cl,0xa          ; LF换行符
@@ -132,4 +132,32 @@ section .text
             jmp .put_char_done
         .put_char_done:
             popad
+            ret
+
+    ; (cdecl)put_str通过put_char打印以\0结尾的字符串
+    global put_str
+    put_str:
+        ;备份用到的寄存器
+        push ebx
+        push ecx
+        or ecx,ecx          ; 用ecx存储传递给put_char的函数
+        mov ebx,[esp+12]    ; 获取待打印字符串地址
+                            ; 2个寄存器1个主调函数返回地址共12字节
+        
+        .goon_print:
+            mov cl,[ebx]
+            cmp cl,0        ; \0字符串结束
+            je .str_over
+
+            push ecx        ; TODO:push cl会报错，为什么？
+            call put_char
+            add esp,4       ; 回收栈空间,符合cdecl标准
+            inc ebx         ; 使ebx指向下一个字符
+            jmp .goon_print
+
+        .str_over:
+            ; 恢复寄存器
+            pop ecx
+            pop ebx
+
             ret
