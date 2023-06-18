@@ -14,30 +14,32 @@ LDFLAGS = -N -m elf_i386 -Ttext $(ENTRY_POINT) -e main
 
 # 处理.S to .bin
 $(BOOT_BUILD_PATH)/%.bin:$(BOOT_SRC_PATH)/%.S
-	$(shell mkdir -p $(BOOT_BUILD_PATH) -m 777)
+	$(shell mkdir -p $(BOOT_BUILD_PATH))
 	nasm -I $(BOOT_SRC_PATH) -f bin $< -o $@
 
 # 处理.S to .o
 $(KERNEL_ASM_BUILD_PATH)/%.o:$(KERNEL_SRC_PATH)/%.S
-	$(shell mkdir -p $(KERNEL_ASM_BUILD_PATH) -m 777)
+	$(shell mkdir -p $(KERNEL_ASM_BUILD_PATH))
 	nasm -I $(KERNEL_SRC_PATH) -f elf $< -o $@
 
 # 处理.c to .o
 $(KERNEL_C_BUILD_PATH)/%.o:$(KERNEL_SRC_PATH)/%.c
-	$(shell mkdir -p $(KERNEL_C_BUILD_PATH) -m 777)
+	$(shell mkdir -p $(KERNEL_C_BUILD_PATH))
 	gcc $(GCCFLAGS) $< -c -o $@
 
 # 处理 kernel.bin
-$(KERNEL_BUILD_PATH)/kernel.bin:$(KERNEL_ASM_BUILD_PATH)/print.o\
-								$(KERNEL_C_BUILD_PATH)/main.o
-	$(shell mkdir -p $(KERNEL_BUILD_PATH) -m 777)
+# main.o必须在前面，要遵守“调用在前，实现在后”的顺序
+# 否则会出现链接之后生成的虚拟地址不准确的问题
+$(KERNEL_BUILD_PATH)/kernel.bin:$(KERNEL_C_BUILD_PATH)/main.o\
+								$(KERNEL_ASM_BUILD_PATH)/print.o
+	$(shell mkdir -p $(KERNEL_BUILD_PATH))
 	ld $(LDFLAGS) $^ -o $@
 	strip --remove-section=.note.gnu.property $@
 
 $(BUILD)/master.img:$(BOOT_BUILD_PATH)/mbr.bin\
 					$(BOOT_BUILD_PATH)/loader.bin\
 					$(KERNEL_BUILD_PATH)/kernel.bin
-	$(shell mkdir -p $(BUILD) -m 777)
+	$(shell mkdir -p $(BUILD))
 	yes | bximage -q -mode=create -hd=16M -sectsize=512 -imgmode=flat $@
 	dd if=$(BOOT_BUILD_PATH)/mbr.bin of=$@ bs=512 count=1 conv=notrunc
 	dd if=$(BOOT_BUILD_PATH)/loader.bin of=$@ bs=512 count=4 seek=2 conv=notrunc
@@ -47,8 +49,11 @@ $(BUILD)/master.img:$(BOOT_BUILD_PATH)/mbr.bin\
 clean:
 	rm -rf build/
 
+.PHONY:build
+build:$(BUILD)/master.img
+
 .PHONY:bochs
-bochs:$(BUILD)/master.img
+bochs:build
 	bochs -q -f bochsrc.disk
 
 test:$(KERNEL_BUILD_PATH)/kernel.bin
