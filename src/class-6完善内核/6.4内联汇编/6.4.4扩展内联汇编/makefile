@@ -1,4 +1,4 @@
-GCCFLAG= -Wall -W -no-pie
+GCCFLAG= -Wall -W -no-pie -g
 .PHONY: clean
 clean:
 	rm -f *.o
