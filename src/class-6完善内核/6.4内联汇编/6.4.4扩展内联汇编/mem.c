@@ -7,7 +7,7 @@ int main()
     asm("movb %b0,%1" ::"a"(in_a), "m"(in_b));
     printf("in_b is %d\n", in_b);
 
-    //这里比较movb和movl的区别
+    // 这里比较movb和movl的区别
     asm("movl $114,%0" ::"m"(in_b));
     printf("in_b is %d\n", in_b);
     return 0;
