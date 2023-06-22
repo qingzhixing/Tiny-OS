@@ -11,5 +11,6 @@ int main()
         : "=a"(ret_cnt)
         : "m"(fmt), "r"(test));
     printf("the number of bytes written is %d\n", ret_cnt);
+    getchar();
     return 0;
 }
