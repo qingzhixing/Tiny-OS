@@ -15,7 +15,10 @@
 	],
 	"settings": {
 		"files.associations": {
-			"*.tcc": "c"
+			"*.tcc": "c",
+			"system_error": "c",
+			"print.h": "c",
+			"test.h": "c"
 		}
 	}
 }
