@@ -12,7 +12,11 @@
 // 向port端口写入一个字节
 static inline void outb(uint16_t port, uint8_t data)
 {
-    // 对端口指定N表示0~255,d表示用dx存储端口号,%b0表示对应al,%w1表示对应dx
+    /* 对端口指定N表示0~255,
+        d表示用dx存储端口号,
+        %b0表示对应al,
+        %w1表示对应dx
+    */
     asm volatile("outb %b0,%w1" ::"a"(data), "Nd"(port));
 }
 
@@ -26,7 +30,34 @@ static inline uint8_t inb(uint16_t port)
     return data;
 }
 
-// 将addr处起始的word_cnt个字写入端口port
-static inline void outw(uint16_t port,)//TODO:止步于此
+// 将addr处起始的word_cnt个字(2字节)写入端口port
+static inline void outsw(uint16_t port, const void *addr, uint32_t word_cnt)
+{
+    /*
+        +S:放在esi中，输入并输出
+        +c:放在ecx中，输入并输出
+        d:放在edx中
+        这里ds,ed,ss段选择子早已在进入保护模式时初始化
+    */
+    // TODO:这里的addr和word_cnt为什么需要获取输出呢,不是没有使用到吗?
+    asm volatile("cld;\
+                    rep outsw;"
+                 : "+S"(addr), "+c"(word_cnt)
+                 : "d"(port));
+}
+
+// 将从端口port处读入的word_cnt个字(2字节)写入addr
+static inline void insw(uint16_t port, void *addr, uint32_t word_cnt)
+{
+    /*
+        +D:放在edi中,输入并输出
+        +c:ecx中,I&O
+    */
+    asm volatile("cld;\
+                    rep insw;"
+                 : "+D"(addr), "+c"(word_cnt)
+                 : "d"(port)
+                 : "memory");
+}
 
 #endif /* __LIB_IO_H */
