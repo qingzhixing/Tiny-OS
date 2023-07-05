@@ -1,10 +1,21 @@
 #include "interrupt.h"
 #include "global.h"
+#include "io.h"
 #include "print.h"
 #include "stdint.h"
 
 // 目前支持的总中断数
 #define IDT_DESC_CNT 0x21
+
+// pic参数
+// 主片的控制端口是0x20
+#define PIC_MASTER_CTRL 0x20
+// 主片的数据端口是0x21
+#define PIC_MASTER_DATA 0x21
+// 从片的控制端口是0xa0
+#define PIC_SLAVE_CTRL 0xa0
+// 从片的数据端口水0xa1
+#define PIC_SLAVE_DATA 0xa1
 
 // 门描述符结构体(中断门描述符通用)
 struct gate_desc
@@ -41,6 +52,30 @@ static void idt_desc_init(void)
         make_idt_desc(idt + i, IDT_DESC_ATTR_DPL0, intr_entry_table[i]);
     }
     put_str("   idt_desc_init done\n");
+}
+
+static void pic_init(void)
+{
+    // 初始化主片
+    outb(PIC_MASTER_CTRL, 0x11); // ICW1:边沿触发，级联8259,需要ICW4
+    outb(PIC_MASTER_DATA, 0x20); // ICW2: 起始中断向量号为0x20
+                                 // 也就是IR[0-7]为0x20~0x27
+    outb(PIC_MASTER_DATA, 0x04); // ICW3:IR2接从片
+    outb(PIC_MASTER_DATA, 0x01); // ICW4: 8086模式，正常EOI
+
+    // 初始化从片
+    outb(PIC_SLAVE_CTRL, 0x11); // ICW1:边沿触发，级联8259,需要ICW4
+    outb(PIC_SLAVE_DATA, 0x28); // ICW2: 起始中断向量号为0x28
+                                // 也就是IR[8-15]位0x28~0x2F
+    outb(PIC_SLAVE_DATA, 0x02); // ICW3:从片连接到主片IR2引脚
+    outb(PIC_SLAVE_DATA, 0x01); // ICW4: 8086模式，正常EOI
+
+    // 只打开IR0,也就是只接受时钟中断
+    // IR0在主片上
+    outb(PIC_MASTER_DATA, 0xfe);
+    outb(PIC_SLAVE_DATA, 0xff);
+
+    put_str("   pic_init done\n");
 }
 
 // 完成所有中断的初始化工作
