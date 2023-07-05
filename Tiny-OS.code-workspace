@@ -18,7 +18,10 @@
 			"*.tcc": "c",
 			"system_error": "c",
 			"print.h": "c",
-			"test.h": "c"
+			"test.h": "c",
+			"stdint.h": "c",
+			"global.h": "c",
+			"interrupt.h": "c"
 		}
 	}
 }
