@@ -1,9 +1,13 @@
+#include "debug.h"
+#include "init.h"
 #include "print.h"
 int main(void)
 {
-    char message[] = "Kernel Message:put_str();\n";
-    put_str(message);
-    put_int_hex(0xFFFFFFFF);
+    put_str("Kernel Running.\n");
+    init_all();
+    BochsMagicBreak();
+    // 将eflags IF位置1,使cpu可以处理外部中断
+    asm volatile("sti");
     while (1)
     {
         // 阻塞

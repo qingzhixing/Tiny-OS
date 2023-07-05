@@ -31,7 +31,10 @@ $(KERNEL_C_BUILD_PATH)/%.o:$(KERNEL_SRC_PATH)/%.c
 # main.o必须在前面，要遵守“调用在前，实现在后”的顺序
 # 否则会出现链接之后生成的虚拟地址不准确的问题
 $(KERNEL_BUILD_PATH)/kernel.bin:$(KERNEL_C_BUILD_PATH)/main.o\
-								$(KERNEL_ASM_BUILD_PATH)/print.o
+								$(KERNEL_C_BUILD_PATH)/init.o\
+								$(KERNEL_C_BUILD_PATH)/interrupt.o\
+								$(KERNEL_ASM_BUILD_PATH)/print.o\
+								$(KERNEL_ASM_BUILD_PATH)/kernel.o
 	$(shell mkdir -p $(KERNEL_BUILD_PATH))
 	ld $(LDFLAGS) $^ -o $@
 	strip --remove-section=.note.gnu.property $@
