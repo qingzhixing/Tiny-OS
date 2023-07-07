@@ -52,6 +52,7 @@ $(LIB_KERNEL_ASM_BUILD_PATH)/%.o:$(LIB_KERNEL_SRC_PATH)/%.S
 objfiles = $(KERNEL_C_BUILD_PATH)/main.o\
 			$(KERNEL_C_BUILD_PATH)/init.o\
 			$(KERNEL_C_BUILD_PATH)/interrupt.o\
+			$(KERNEL_C_BUILD_PATH)/debug.o\
 			$(LIB_KERNEL_ASM_BUILD_PATH)/print.o\
 			$(KERNEL_ASM_BUILD_PATH)/kernel.o\
 			$(DEVICE_BUILD_PATH)/timer.o

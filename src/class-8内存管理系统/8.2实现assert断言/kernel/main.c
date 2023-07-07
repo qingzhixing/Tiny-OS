@@ -8,6 +8,7 @@ int main(void)
     BochsMagicBreak();
     // 将eflags IF位置1,使cpu可以处理外部中断
     asm volatile("sti");
+    ASSERT(1 == 2);
     while (1)
     {
         // 阻塞

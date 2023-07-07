@@ -176,7 +176,7 @@ enum intr_status intr_enable()
 // 关闭中断并返回关闭之前的状态
 enum intr_status intr_disable()
 {
-    if (INTR_OFF = intr_get_status())
+    if (INTR_OFF == intr_get_status())
     {
         return INTR_OFF;
     }

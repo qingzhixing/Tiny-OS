@@ -22,7 +22,9 @@
 			"stdint.h": "c",
 			"global.h": "c",
 			"interrupt.h": "c",
-			"init.h": "c"
+			"init.h": "c",
+			"sstream": "c",
+			"debug.h": "c"
 		}
 	}
 }
