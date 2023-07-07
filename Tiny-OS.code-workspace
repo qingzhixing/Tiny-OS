@@ -24,7 +24,18 @@
 			"interrupt.h": "c",
 			"init.h": "c",
 			"sstream": "c",
-			"debug.h": "c"
+			"debug.h": "c",
+			"string.h": "c",
+			"array": "c",
+			"string_view": "c",
+			"initializer_list": "c",
+			"utility": "c",
+			"iterator": "c",
+			"deque": "c",
+			"forward_list": "c",
+			"list": "c",
+			"string": "c",
+			"vector": "c"
 		}
 	}
 }
