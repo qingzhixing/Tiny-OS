@@ -18,10 +18,10 @@ void panic_spin(
     put_int_hex(line);
     put_char('\n');
     put_str("function name:");
-    put_str((char *)function_name);
+    put_str(function_name);
     put_char('\n');
     put_str("condition:");
-    put_str((char *)condition);
+    put_str(condition);
     put_char('\n');
 
     // 悬停程序
