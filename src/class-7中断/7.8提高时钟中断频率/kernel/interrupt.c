@@ -133,7 +133,7 @@ static void pic_init(void)
 }
 
 // 完成所有中断的初始化工作
-void idt_init(void)
+void idt_init()
 {
     put_str("idt_init start\n");
     idt_desc_init();  // 初始化中断描述符表

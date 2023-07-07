@@ -49,16 +49,17 @@ $(LIB_KERNEL_ASM_BUILD_PATH)/%.o:$(LIB_KERNEL_SRC_PATH)/%.S
 	nasm -I $(LIB_KERNEL_SRC_PATH) -f elf $< -o $@
 
 
+objfiles = $(KERNEL_C_BUILD_PATH)/main.o\
+			$(KERNEL_C_BUILD_PATH)/init.o\
+			$(KERNEL_C_BUILD_PATH)/interrupt.o\
+			$(LIB_KERNEL_ASM_BUILD_PATH)/print.o\
+			$(KERNEL_ASM_BUILD_PATH)/kernel.o\
+			$(DEVICE_BUILD_PATH)/timer.o
 
 # 处理 kernel.bin
 # main.o必须在前面，要遵守“调用在前，实现在后”的顺序
 # 否则会出现链接之后生成的虚拟地址不准确的问题
-$(KERNEL_BUILD_PATH)/kernel.bin:$(KERNEL_C_BUILD_PATH)/main.o\
-								$(KERNEL_C_BUILD_PATH)/init.o\
-								$(KERNEL_C_BUILD_PATH)/interrupt.o\
-								$(LIB_KERNEL_ASM_BUILD_PATH)/print.o\
-								$(KERNEL_ASM_BUILD_PATH)/kernel.o\
-								$(DEVICE_BUILD_PATH)/timer.o
+$(KERNEL_BUILD_PATH)/kernel.bin:$(objfiles)
 	$(shell mkdir -p $(KERNEL_BUILD_PATH))
 	ld $(LDFLAGS) $^ -o $@
 	strip --remove-section=.note.gnu.property $@
