@@ -74,11 +74,6 @@ uint32_t strlen(const char *str)
 int8_t strcmp(const char *str1, const char *str2)
 {
     ASSERT(str1 != nullptr && str2 != nullptr);
-    put_str("comparing:\n");
-    put_str(str1);
-    put_char('\n');
-    put_str(str2);
-    put_char('\n');
     while (*str1 != 0 && *str1 == *str2)
     {
         str1++;
