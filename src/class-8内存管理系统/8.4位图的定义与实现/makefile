@@ -51,16 +51,22 @@ $(LIB_BUILD_PATH)/%.o:$(LIB_SRC_PATH)/%.c
 LIB_KERNEL_SRC_PATH=$(SRC)/lib/kernel
 LIB_KERNEL_BUILD_PATH=$(BUILD)/lib/kernel
 LIB_KERNEL_ASM_BUILD_PATH=$(LIB_KERNEL_BUILD_PATH)/asm
+LIB_KERNEL_C_BUILD_PATH=$(LIB_KERNEL_BUILD_PATH)/c
 
 $(LIB_KERNEL_ASM_BUILD_PATH)/%.o:$(LIB_KERNEL_SRC_PATH)/%.S
 	$(shell mkdir -p $(LIB_KERNEL_ASM_BUILD_PATH))
 	nasm -I $(LIB_KERNEL_SRC_PATH) -f elf $< -o $@
+
+$(LIB_KERNEL_C_BUILD_PATH)/%.o:$(LIB_KERNEL_SRC_PATH)/%.c
+	$(shell mkdir -p $(LIB_KERNEL_C_BUILD_PATH))
+	gcc $(GCCFLAGS) $< -c -o $@
 
 
 objfiles = $(KERNEL_C_BUILD_PATH)/main.o\
 			$(KERNEL_C_BUILD_PATH)/init.o\
 			$(KERNEL_C_BUILD_PATH)/interrupt.o\
 			$(KERNEL_C_BUILD_PATH)/debug.o\
+			$(LIB_KERNEL_C_BUILD_PATH)/bitmap.o\
 			$(LIB_KERNEL_ASM_BUILD_PATH)/print.o\
 			$(KERNEL_ASM_BUILD_PATH)/kernel.o\
 			$(LIB_BUILD_PATH)/string.o\

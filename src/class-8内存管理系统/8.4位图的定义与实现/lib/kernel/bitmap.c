@@ -43,7 +43,7 @@ int bitmap_scan(struct bitmap *btmp, uint32_t cnt)
     uint32_t available_bit_index = 0;
     while (btmp->bits[available_byte_index] & (BITMAP_MASK << available_bit_index))
     {
-        available_bit_index++
+        available_bit_index++;
     }
 
     // 空闲位在图中的下标
@@ -84,4 +84,15 @@ int bitmap_scan(struct bitmap *btmp, uint32_t cnt)
 void bitmap_set(struct bitmap *btmp, uint32_t bit_idx, int8_t value)
 {
     ASSERT(value == 0 || value == 1);
+    uint32_t byte_idx = bit_idx / 8;
+    uint32_t bit_odd = bit_idx % 8;
+
+    if (value == 1)
+    {
+        btmp->bits[byte_idx] |= (BITMAP_MASK << bit_odd);
+    }
+    else
+    {
+        btmp->bits[byte_idx] &= (BITMAP_MASK << bit_odd);
+    }
 }
