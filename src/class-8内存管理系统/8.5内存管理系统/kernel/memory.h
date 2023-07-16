@@ -4,7 +4,7 @@
 #include "stdint.h"
 struct virtual_addr
 {
-    struct bitmap vaddr_bitmap; // 堵你地址用到的位图结构
+    struct bitmap vaddr_bitmap; // 虚拟地址用到的位图结构
     uint32_t vaddr_start;       // 虚拟地址的起始地址
 };
 
