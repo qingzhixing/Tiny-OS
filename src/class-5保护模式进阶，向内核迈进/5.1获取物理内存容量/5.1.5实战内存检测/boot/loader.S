@@ -22,15 +22,20 @@ section loader vstart=LOADER_BASE_ADDR
     GDT_SIZE equ $ - GDT_BASE
     GDT_LIMIT equ GDT_SIZE - 1
 
-    times 60 dq 0; 预留60个描述符空位，为了方便扩展，dq定义8字节变量
+    times 59 dq 0   ; 预留59个描述符空位，为了方便扩展，dq定义8字节变量
+
+    times 5 db 0    ; 这里用来对齐512Byte(0x200)
+                    ; jmp - 3Byte
+                    ; 4 GDT - 4*8=32Byte
+                    ; times 59* (dq) 8
+                    ; times 5 db - 5
+                    ; 一共512Byte=0x200B
 
     ; 用于保存内存容量,以字节为单位
     ; 当前偏移loader.bin文件头0x200字节
     ; loader.bin在内存中的地址为LOADER_BASE_ADDR=0x900
     ; 则total_mem_bytes内存中地址为0xb00
     ; 在内核中会引用此地址
-    ; TODO: 为何为偏移200? 
-    ; TODO: 不应该是60*8字节+3个gdt的大小(3*8 Byte)一共63*8字节的位偏移量吗
     total_mem_bytes dd 0
 
     ; gdt指针,前2字节为GDT界限，后4字节为GDT起始地址

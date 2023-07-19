@@ -22,7 +22,14 @@ section loader vstart=LOADER_BASE_ADDR
     GDT_SIZE equ $ - GDT_BASE
     GDT_LIMIT equ GDT_SIZE - 1
 
-    times 60 dq 0; 预留60个描述符空位，为了方便扩展，dq定义8字节变量
+    times 59 dq 0   ; 预留59个描述符空位，为了方便扩展，dq定义8字节变量
+
+    times 5 db 0    ; 这里用来对齐512Byte(0x200)
+                    ; jmp - 3Byte
+                    ; 4 GDT - 4*8=32Byte
+                    ; times 59* (dq) 8
+                    ; times 5 db - 5
+                    ; 一共512Byte=0x200B
 
     ; 用于保存内存容量,以字节为单位
     ; 当前偏移loader.bin文件头0x200字节
