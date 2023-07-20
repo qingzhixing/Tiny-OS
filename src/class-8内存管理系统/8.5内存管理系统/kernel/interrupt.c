@@ -63,8 +63,8 @@ static void general_intr_handler(uint8_t vec_nr)
     {
         return;
     }
-    put_str("int vector: 0x");
-    put_int_hex(vec_nr);
+    put_str("int vector: ");
+    put_int_hex_prefixed(vec_nr);
     put_char('\n');
 }
 

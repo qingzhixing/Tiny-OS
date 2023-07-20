@@ -14,8 +14,8 @@ void panic_spin(
     put_str("File Name: ");
     put_str(filename);
     put_char('\n');
-    put_str("Line: 0x");
-    put_int_hex(line);
+    put_str("Line: ");
+    put_int_hex_prefixed(line);
     put_char('\n');
     put_str("Function Name: ");
     put_str(function_name);
