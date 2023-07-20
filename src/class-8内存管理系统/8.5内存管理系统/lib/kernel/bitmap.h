@@ -14,4 +14,5 @@ void bitmap_init(struct bitmap *);
 bool bitmap_scan_test(struct bitmap *, uint32_t);
 int bitmap_scan(struct bitmap *, uint32_t);
 void bitmap_set(struct bitmap *, uint32_t, int8_t);
+void print_bitmap_info(struct bitmap *);
 #endif /* __LIB_KERNEL_BITMAP_H */

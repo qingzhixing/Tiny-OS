@@ -12,13 +12,13 @@
  * 位图地址安排在0xc009a00,这样本系统最大支持4个页框的位图即512MB
  * 0xc009e00-0x4000(4kB)=0xc009_a000
  */
-#define MEM_BITMAP_BASE 0xc009_a000
+#define MEM_BITMAP_BASE 0xc009a000
 
 /*
  * 0xc0000000是内核，从虚拟地址3G起。
  * 0xc0100000是跨越低端1MB内存，使虚拟地址在逻辑上连续
  */
-#define K_HEAP_START 0xc010_0000
+#define K_HEAP_START 0xc0100000
 
 // 内存池结构，生成两个实例用于管理内核物理内存池与用户物理内存池
 struct pool
@@ -27,6 +27,21 @@ struct pool
     uint32_t phy_addr_start;   // 本内存池所管理的物理内存的起始地址
     uint32_t pool_size;        // 本内存池字节容量
 };
+
+void print_pool_info(struct pool *pool)
+{
+    print_bitmap_info(&pool->pool_bitmap);
+    DEBUG_PRINT_UINT32_VAR(pool->phy_addr_start);
+    DEBUG_PRINT_UINT32_VAR(pool->pool_size);
+    put_char('\n');
+}
+
+void print_vaddr_info(struct virtual_addr *vaddr)
+{
+    print_bitmap_info(&vaddr->vaddr_bitmap);
+    DEBUG_PRINT_UINT32_VAR(vaddr->vaddr_start);
+    put_char('\n');
+}
 
 struct pool kernel_pool, user_pool; // 生成内核内存池与用户内存池
 
@@ -39,14 +54,17 @@ struct virtual_addr kernel_vaddr; // 给内核分配虚拟地址
 static void mem_pool_init(uint32_t all_mem)
 {
     put_str("   mem_pool_init start\n");
+    DEBUG_PRINT_UINT32_VAR(all_mem);
 
     // 页表大小 = 1页的页目录项 + 第0和第768个页目录项指向同一个页表 +
     //  第769~1022个页目录项共指向254个页表，一共有256个页表
-    //  故大小为256*PG_SIZE=0x20_0000字节(2MB)
+    //  故大小为256*PG_SIZE=0x10_0000字节(1MB)
     uint32_t page_table_size = PG_SIZE * 256;
+    DEBUG_PRINT_UINT32_VAR(page_table_size);
 
     // 0x10_0000为低端1MB内存
-    uint32_t used_mem = page_table_size + 0x10_0000;
+    uint32_t used_mem = page_table_size + 0x100000;
+    DEBUG_PRINT_UINT32_VAR(used_mem);
 
     uint32_t free_mem = all_mem - used_mem;
 
@@ -94,5 +112,43 @@ static void mem_pool_init(uint32_t all_mem)
 
     // 用户内存池的位图紧跟在内核内存池位图之后
     user_pool.pool_bitmap.bits = (void *)(MEM_BITMAP_BASE + kbm_length);
-    // TODO:止步于此
+
+    // 将位图置0
+    bitmap_init(&kernel_pool.pool_bitmap);
+    bitmap_init(&user_pool.pool_bitmap);
+
+    // 初始化内核虚拟地址位图，按实际物理内存大小生成数组
+    // 用于维护内核 堆 的虚拟地址，所以要和内核内存池的大小一致
+    kernel_vaddr.vaddr_bitmap.btmp_bytes_len = kbm_length;
+
+    // 位图的数组指向一块未使用的内存
+    // 目前定位在内核内存池和用户内存池之外
+    kernel_vaddr.vaddr_bitmap.bits = (void *)(MEM_BITMAP_BASE + kbm_length + ubm_length);
+
+    kernel_vaddr.vaddr_start = K_HEAP_START;
+
+    bitmap_init(&kernel_vaddr.vaddr_bitmap);
+
+    put_str('\n');
+
+    // 输出内存池信息
+    put_str("Kernel Pool Info:\n");
+    print_pool_info(&kernel_pool);
+    put_str("User Pool Info:\n");
+    print_pool_info(&user_pool);
+
+    // 输出虚拟地址信息
+    put_str("Kernel Vaddr Info:\n");
+    print_vaddr_info(&kernel_vaddr);
+
+    put_str("   mem_pool_init done\n");
+}
+
+void mem_init()
+{
+    put_str("mem_init start\n");
+    // 读取0xb00处数据
+    uint32_t mem_bytes_total = (*(uint32_t *)(0xb00));
+    mem_pool_init(mem_bytes_total); // 初始化内存池
+    put_str("mem_init done\n");
 }

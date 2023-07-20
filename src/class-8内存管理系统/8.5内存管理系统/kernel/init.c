@@ -1,5 +1,6 @@
 #include "init.h"
 #include "interrupt.h"
+#include "memory.h"
 #include "print.h"
 #include "timer.h"
 
@@ -9,4 +10,5 @@ void init_all(void)
     put_str("init_all\n");
     idt_init();   // 初始化中断
     timer_init(); // 初始化PIT
+    mem_init();   // 初始化内存池
 }

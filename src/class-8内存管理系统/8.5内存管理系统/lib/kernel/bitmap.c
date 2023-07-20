@@ -96,3 +96,13 @@ void bitmap_set(struct bitmap *btmp, uint32_t bit_idx, int8_t value)
         btmp->bits[byte_idx] &= (BITMAP_MASK << bit_odd);
     }
 }
+
+void print_bitmap_info(struct bitmap *btmp)
+{
+    put_str("   Bitmap Length: ");
+    put_int_hex(btmp->btmp_bytes_len);
+    put_char(' ');
+    put_str("   Bitmap Bytes Start: ");
+    put_int_hex((uint32_t)btmp->bits);
+    put_char('\n');
+}

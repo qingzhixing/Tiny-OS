@@ -10,5 +10,6 @@ struct virtual_addr
 
 extern struct pool kernel_pool, user_pool;
 void mem_init(void);
-
+void print_pool_info(struct pool *);
+void print_vaddr_info(struct virtual_addr *);
 #endif /* __KERNEL_MEMORY_H */

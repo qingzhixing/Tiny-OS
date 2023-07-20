@@ -66,6 +66,7 @@ objfiles = $(KERNEL_C_BUILD_PATH)/main.o\
 			$(KERNEL_C_BUILD_PATH)/init.o\
 			$(KERNEL_C_BUILD_PATH)/interrupt.o\
 			$(KERNEL_C_BUILD_PATH)/debug.o\
+			$(KERNEL_C_BUILD_PATH)/memory.o\
 			$(LIB_KERNEL_C_BUILD_PATH)/bitmap.o\
 			$(LIB_KERNEL_ASM_BUILD_PATH)/print.o\
 			$(KERNEL_ASM_BUILD_PATH)/kernel.o\
