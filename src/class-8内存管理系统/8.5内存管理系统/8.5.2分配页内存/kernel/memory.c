@@ -20,6 +20,9 @@
  */
 #define K_HEAP_START 0xc0100000
 
+#define PDE_IDX(addr) ((addr & 0xffc00000) >> 22)
+#define PTE_IDX(addr) ((addr & 0x003ff000) >> 12)
+
 // 内存池结构，生成两个实例用于管理内核物理内存池与用户物理内存池
 struct pool
 {
@@ -27,6 +30,17 @@ struct pool
     uint32_t phy_addr_start;   // 本内存池所管理的物理内存的起始地址
     uint32_t pool_size;        // 本内存池字节容量
 };
+
+/*
+    在pf表示的虚拟内存池中申请pg_cnt个虚拟页
+    成功返回虚拟页的起始地址，失败则返回NULL
+*/
+static void *vaddr_get(enum pool_flags pf, uint32_t pg_cnt)
+{
+    int vaddr_start = 0, bit_idx_start = -1;
+
+    // TODO:止步于此
+}
 
 void print_pool_info(struct pool *pool)
 {
