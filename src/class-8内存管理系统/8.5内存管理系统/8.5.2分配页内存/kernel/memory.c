@@ -70,13 +70,15 @@ static void mem_pool_init(uint32_t all_mem)
     put_str("   mem_pool_init start\n");
     DEBUG_PRINT_UINT32_VAR(all_mem);
 
-    // 页表大小 = 1页的页目录项 + 第0和第768个页目录项指向同一个页表 +
-    //  第769~1022个页目录项共指向254个页表，一共有256个页表
+    // 页表大小 = 1个页大小的页目录项 + 第0和第768个页目录项指向同一个页表 +
+    //  第769~1022个页目录项共指向第2~第255共254个页表，一共有255个页表
+    //  数据共256个页表大小
     //  故大小为256*PG_SIZE=0x10_0000字节(1MB)
     uint32_t page_table_size = PG_SIZE * 256;
     DEBUG_PRINT_UINT32_VAR(page_table_size);
 
     // 0x10_0000为低端1MB内存
+    // 页目录和页表放在了 PAGE_DIR_TABLE_POS = 0x100000,在低端1MB之外
     uint32_t used_mem = page_table_size + 0x100000;
     DEBUG_PRINT_UINT32_VAR(used_mem);
 
