@@ -34,4 +34,7 @@ enum pool_flags
 // U/S位 = 1: 用户级
 #define PG_US_U 4
 
+uint32_t *pde_ptr(uint32_t);
+uint32_t *pte_ptr(uint32_t);
+
 #endif /* __KERNEL_MEMORY_H */

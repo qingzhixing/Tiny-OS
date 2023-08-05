@@ -64,6 +64,37 @@ static void *vaddr_get(enum pool_flags pf, uint32_t pg_cnt)
     return (void *)vaddr_start;
 }
 
+/*
+    在m_pool管理的内存池中分配 1 个物理页,
+    成功返回页框物理地址，否则返回nullptr
+  */
+static void *palloc(struct pool *m_pool)
+{
+    // 扫描或设置位图要保证原子操作
+    // 找一个物理页面
+    int bit_idx = bitmap_scan(&m_pool->pool_bitmap, 1);
+    // 失败
+    if (bit_idx == -1)
+    {
+        return nullptr;
+    }
+    // 占用该位
+    bitmap_set(&m_pool->pool_bitmap, bit_idx, 1);
+
+    uint32_t page_phyaddr = ((bit_idx * PG_SIZE) + m_pool->phy_addr_start);
+    return (void *)page_phyaddr;
+}
+
+// 得到虚拟地址 vaddr 对应的 pte(二级页表) 指针
+uint32_t *pte_ptr(uint32_t)
+{
+}
+
+// 得到虚拟地址 vaddr 对应的 pde(一级页表) 指针
+uint32_t *pde_ptr(uint32_t)
+{
+}
+
 void print_pool_info(struct pool *pool)
 {
     print_bitmap_info(&pool->pool_bitmap);
