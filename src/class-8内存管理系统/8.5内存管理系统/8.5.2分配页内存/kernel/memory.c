@@ -37,9 +37,31 @@ struct pool
 */
 static void *vaddr_get(enum pool_flags pf, uint32_t pg_cnt)
 {
+    // 返回的起始地址和连续内存在位图中的偏移
     int vaddr_start = 0, bit_idx_start = -1;
-
-    // TODO:止步于此
+    uint32_t cnt = 0;
+    if (pf == PF_KERNEL)
+    {
+        bit_idx_start = bitmap_scan(&kernel_vaddr.vaddr_bitmap, pg_cnt);
+        if (-1 == bit_idx_start)
+        {
+            // 失败
+            return nullptr;
+        }
+        // 占用这几页
+        while (cnt < pg_cnt)
+        {
+            bitmap_set(&kernel_vaddr.vaddr_bitmap, bit_idx_start + cnt, 1);
+            cnt++;
+        }
+        vaddr_start = kernel_vaddr.vaddr_start + bit_idx_start * PG_SIZE;
+    }
+    else
+    {
+        // 用户内存池将在实现用户内存时补充
+        PANIC("unimplemented: when pf==PF_USER");
+    }
+    return (void *)vaddr_start;
 }
 
 void print_pool_info(struct pool *pool)
