@@ -276,7 +276,41 @@ static void page_table_add(void *vaddr_ptr, void *page_phyaddr_ptr)
         注意！
         执行 *pte 需要在 pde创建之后才能找得到，所以先要创建pde再判断pte,否则会引发page_fault
     */
-    // TODO:止步于此
+    // 判断页目录项是否存在（判断P位是否为1）
+    if (*pde & 1)
+    {
+        // 存在则判断页表项是否存在
+        // 只要是创建页表，pte就不应该存在，否则不会分配该页来建立映射
+        ASSERT(!(*pte & 1));
+
+        // 不放心再判断一次
+        if (!(*pte & 1))
+        {
+            // US=1,RW=1,P=1
+            *pte = (page_phyaddr | PG_US_U | PG_RW_W | PG_P_1);
+        }
+        else
+        {
+            // 按理来说ASSERT会阻止执行到这一步，以防万一
+            PANIC("pte repeated already!!!");
+            *pte = (page_phyaddr | PG_US_U | PG_RW_W | PG_P_1);
+        }
+    }
+    else
+    {
+        // 页目录项不存在
+        // 初始化页目录项
+        // 页表中用到的页框一律从内核空间中分配
+        uint32_t pde_phyaddr = (uint32_t)palloc(&kernel_pool);
+
+        *pde = (pde_phyaddr | PG_US_U | PG_RW_W | PG_P_1);
+
+        // 初始化(清空)页表
+        memset((void *)((int)pte & 0xfffff000), 0, PG_SIZE);
+
+        ASSERT(!(*pte & 1));
+        *pte = (page_phyaddr | PG_US_U | PG_RW_W | PG_P_1);
+    }
 }
 
 void mem_init()
