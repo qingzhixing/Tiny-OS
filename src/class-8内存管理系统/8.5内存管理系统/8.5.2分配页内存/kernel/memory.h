@@ -36,5 +36,7 @@ enum pool_flags
 
 uint32_t *pde_ptr(uint32_t);
 uint32_t *pte_ptr(uint32_t);
+void *malloc_page(enum pool_flags, uint32_t);
+void *get_kernel_pages(uint32_t);
 
 #endif /* __KERNEL_MEMORY_H */

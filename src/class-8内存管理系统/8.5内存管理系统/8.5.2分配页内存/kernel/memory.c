@@ -1,7 +1,9 @@
 #include "memory.h"
 #include "debug.h"
 #include "print.h"
+#include "stddef.h"
 #include "stdint.h"
+#include "string.h"
 
 // 一个页的尺寸：4096B=4kB
 #define PG_SIZE 4096
@@ -28,6 +30,10 @@ struct pool
     uint32_t phy_addr_start;   // 本内存池所管理的物理内存的起始地址
     uint32_t pool_size;        // 本内存池字节容量
 };
+
+struct pool kernel_pool, user_pool; // 生成内核内存池与用户内存池
+
+struct virtual_addr kernel_vaddr; // 给内核分配虚拟地址
 
 /*
     在pf表示的虚拟内存池中申请pg_cnt个虚拟页
@@ -146,6 +152,7 @@ uint32_t *pte_ptr(uint32_t vaddr)
     uint32_t low12bit_addr = PTE_IDX(vaddr) * 4;
 
     uint32_t *pde = (uint32_t *)(high10bit_pde_addr + mid10bit_pte_addr + low12bit_addr);
+    return pde;
 }
 
 void print_pool_info(struct pool *pool)
@@ -162,10 +169,6 @@ void print_vaddr_info(struct virtual_addr *vaddr)
     DEBUG_PRINT_UINT32_VAR(vaddr->vaddr_start);
     put_char('\n');
 }
-
-struct pool kernel_pool, user_pool; // 生成内核内存池与用户内存池
-
-struct virtual_addr kernel_vaddr; // 给内核分配虚拟地址
 
 /*
  * 初始化内存池
