@@ -117,7 +117,16 @@ uint32_t *pde_ptr(uint32_t vaddr)
      *  也就是 PDE_IDX(vaddr) * 大小(4 Byte)。
      * 这样我们就在 页目录 里面找到了我们需要的对应的 PDE 指针
      */
-    uint32_t *pde = (uint32_t *)((0xfffff000) + PDE_IDX(vaddr) * 4);
+
+    // 高10位，用于查找页目录项，找到第1023个页目录项，指向的页表是页目录
+    uint32_t high10bit_pde_addr = 0xffc00000;
+    // 中10位，用于查找4k页,找到第1023个页表项，页目录地址所在的页表的1023号页表项指向的4k页就是页目录
+    uint32_t mid10bit_pte_addr = 0x003ff000;
+    // 低10位，用于最终索引地址，存放PDE_IDX(vaddr) * 4,用于得到PDE地址在4k页中的偏移
+    uint32_t low12bit_addr = PDE_IDX(vaddr) * 4;
+
+    uint32_t *pde = (uint32_t *)(high10bit_pde_addr + mid10bit_pte_addr + low12bit_addr);
+
     return pde;
 }
 
