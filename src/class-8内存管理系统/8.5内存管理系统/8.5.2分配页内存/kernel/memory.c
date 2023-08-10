@@ -87,12 +87,6 @@ static void *palloc(struct pool *m_pool)
 // 保留中10位
 #define PTE_IDX(addr) ((addr & 0x003ff000) >> 12)
 
-// 得到虚拟地址 vaddr 对应的 pte(二级页表) 的 指针
-uint32_t *pte_ptr(uint32_t vaddr)
-{
-    // TODO:止步于此
-}
-
 // 得到虚拟地址 vaddr 对应的 pde(一级页表) 的 指针
 uint32_t *pde_ptr(uint32_t vaddr)
 {
@@ -113,7 +107,7 @@ uint32_t *pde_ptr(uint32_t vaddr)
      * 第二步，根据中10位全1,找到最后一个 页表项，此时 页表 是 页目录，最后一个 页表项 就是最后一个 页目录项，
      *  也许你发现了，最后一个 页表项 指向的 4k页 地址还是 页目录 的地址，
      *  所以第三步我们将在 页目录 里面寻址。
-     * 第三步，末尾12个0是 高10位*4 的结果: 一个页目录项占4 Byte,则 页目录项所在的地址是 页目录编号 * 页目录大小
+     * 第三步，末尾12个bit是 高10位*4 的结果: 一个页目录项占4 Byte,则 页目录项所在的地址是 页目录编号 * 页目录大小
      *  也就是 PDE_IDX(vaddr) * 大小(4 Byte)。
      * 这样我们就在 页目录 里面找到了我们需要的对应的 PDE 指针
      */
@@ -128,6 +122,29 @@ uint32_t *pde_ptr(uint32_t vaddr)
     uint32_t *pde = (uint32_t *)(high10bit_pde_addr + mid10bit_pte_addr + low12bit_addr);
 
     return pde;
+}
+
+// 得到虚拟地址 vaddr 对应的 pte(二级页表) 的 指针
+uint32_t *pte_ptr(uint32_t vaddr)
+{
+    /*
+     * 我们来解释一下这段代码:
+     * 与pde_ptr函数类似:
+     * 第一步，高10位全1,指向最后一个页目录项，获得它所指向的页表。
+     *  但由于它指向 页目录，所以第二步我们会将 页目录 当做页表解析(大小相同)。
+     * 第二步，从页目录获得 vaddr对应页目录项 的4k页，也就是 vaddr对应的页表
+     *  所以第三步我们将在 vaddr对应的页表 里面寻址。
+     * 第三步，末尾12个bit存放 页表项在页表中的偏移: 编号*大小
+     * 这样我们就找到了我们需要的对应的 PTE 指针
+     */
+    // 高10位，用于查找页目录项，找到第1023个页目录项，指向的页表是页目录
+    uint32_t high10bit_pde_addr = 0xffc00000;
+    // 中10位，用于查找4k页,存放的是vaddr的高10位，将页表当做4k页解析
+    uint32_t mid10bit_pte_addr = PDE_IDX(vaddr) << 12;
+    // 低10位，用于最终索引地址,放页表项在页表中的偏移
+    uint32_t low12bit_addr = PTE_IDX(vaddr) * 4;
+
+    uint32_t *pde = (uint32_t *)(high10bit_pde_addr + mid10bit_pte_addr + low12bit_addr);
 }
 
 void print_pool_info(struct pool *pool)
