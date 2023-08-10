@@ -20,9 +20,6 @@
  */
 #define K_HEAP_START 0xc0100000
 
-#define PDE_IDX(addr) ((addr & 0xffc00000) >> 22)
-#define PTE_IDX(addr) ((addr & 0x003ff000) >> 12)
-
 // 内存池结构，生成两个实例用于管理内核物理内存池与用户物理内存池
 struct pool
 {
@@ -85,15 +82,43 @@ static void *palloc(struct pool *m_pool)
     return (void *)page_phyaddr;
 }
 
-// 得到虚拟地址 vaddr 对应的 pte(二级页表) 指针
-uint32_t *pte_ptr(uint32_t)
+// 保留前10位
+#define PDE_IDX(addr) ((addr & 0xffc00000) >> 22)
+// 保留中10位
+#define PTE_IDX(addr) ((addr & 0x003ff000) >> 12)
+
+// 得到虚拟地址 vaddr 对应的 pte(二级页表) 的 指针
+uint32_t *pte_ptr(uint32_t vaddr)
 {
     // TODO:止步于此
 }
 
-// 得到虚拟地址 vaddr 对应的 pde(一级页表) 指针
-uint32_t *pde_ptr(uint32_t)
+// 得到虚拟地址 vaddr 对应的 pde(一级页表) 的 指针
+uint32_t *pde_ptr(uint32_t vaddr)
 {
+    /*
+     * 我们来解释一下这段代码:
+     * 虚拟地址寻址分为三步:
+     *  1. 根据vaddr 高10位找到页目录项，即获得它指向的页表
+     *  2. 根据vaddr 中10位找到页表中的页表项，获得该项所在的4k页
+     *  3. 根据vaddr 低12位，在4k页中索引，最终找到指向的内存单元的地址
+     *
+     * 0xfffff 可以试最终的4k页为页目录所在的自然页:
+     *  loader.S中有如下代码：
+     *      mov [PAGE_DIR_TABLE_POS + 4092] , eax ;eax此时为PAGE_DIR_TABLE_POS
+     *                          ; 让最后一个(1023号） 页目录项 指向目录表自己的地址
+     *
+     * 据此可知，第一步，高10位全1,指向最后一个页目录项，获得它所指向的页表。
+     *  但由于它指向 页目录，所以第二步我们会将 页目录 当做页表解析(大小相同)。
+     * 第二步，根据中10位全1,找到最后一个 页表项，此时 页表 是 页目录，最后一个 页表项 就是最后一个 页目录项，
+     *  也许你发现了，最后一个 页表项 指向的 4k页 地址还是 页目录 的地址，
+     *  所以第三步我们将在 页目录 里面寻址。
+     * 第三步，末尾12个0是 高10位*4 的结果: 一个页目录项占4 Byte,则 页目录项所在的地址是 页目录编号 * 页目录大小
+     *  也就是 PDE_IDX(vaddr) * 大小(4 Byte)。
+     * 这样我们就在 页目录 里面找到了我们需要的对应的 PDE 指针
+     */
+    uint32_t *pde = (uint32_t *)((0xfffff000) + PDE_IDX(vaddr) * 4);
+    return pde;
 }
 
 void print_pool_info(struct pool *pool)
