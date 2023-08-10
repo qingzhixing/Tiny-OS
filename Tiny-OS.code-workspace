@@ -35,7 +35,8 @@
 			"forward_list": "c",
 			"list": "c",
 			"string": "c",
-			"vector": "c"
+			"vector": "c",
+			"memory.h": "c"
 		}
 	}
 }

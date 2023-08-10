@@ -1,4 +1,5 @@
 #include "memory.h"
+#include "debug.h"
 #include "print.h"
 #include "stdint.h"
 
@@ -311,6 +312,68 @@ static void page_table_add(void *vaddr_ptr, void *page_phyaddr_ptr)
         ASSERT(!(*pte & 1));
         *pte = (page_phyaddr | PG_US_U | PG_RW_W | PG_P_1);
     }
+}
+
+// 从物理内存池中分配pg_cnt个页空间，成功则返回起始的虚拟地址，失败则返回NULL
+void *malloc_page(enum pool_flags pf, uint32_t pg_cnt)
+{
+    /*
+        32MB 内存空间，内核和用户空间各16MB,保守起见用15MB限制
+        申请的内存要小于内存池大小即 15*1024*1024 / 4096 = 3840
+    */
+    ASSERT(pg_cnt > 0 && pg_cnt < 3840);
+
+    /*
+        分配内存分三步:
+            1.通过vaddr_get申请虚拟地址
+            2.通过palloc申请物理页
+            3.通过page_table_add将以上得到的虚拟地址和物理地址在页表中完成映射
+    */
+
+    void *vaddr_start = vaddr_get(pf, pg_cnt);
+    if (vaddr_start == NULL)
+    {
+        return NULL;
+    }
+
+    uint32_t vaddr = (uint32_t)vaddr_start, cnt = pg_cnt;
+    struct pool *mem_pool = (pf == PF_KERNEL) ? &kernel_pool : &user_pool;
+
+    // 物理内存池可以不连续，逐个映射
+    // cnt趋近于0 (并不)
+    while (cnt-- > 0)
+    {
+        void *page_phyaddr = palloc(mem_pool);
+        if (page_phyaddr == NULL)
+        {
+            // 失败了要撤回申请的内存
+            // 将来完成内存回收时再补充
+            put_str("failed to alloc page_phyaddr\n");
+            put_str("recycling not finished\n");
+            return NULL;
+        }
+        // 建立映射
+        page_table_add((void *)vaddr, page_phyaddr);
+
+        // 下一页
+        vaddr += PG_SIZE;
+    }
+    return vaddr_start;
+}
+
+/*
+    从内核物理内存池中申请pg_cnt页内存,
+    成功返回起始地址，失败返回NULL
+*/
+void *get_kernel_pages(uint32_t pg_cnt)
+{
+    void *vaddr = malloc_page(PF_KERNEL, pg_cnt);
+    if (vaddr != NULL)
+    {
+        // 不为空则将页框清零之后返回
+        memset(vaddr, 0, pg_cnt * PG_SIZE);
+    }
+    return vaddr;
 }
 
 void mem_init()
