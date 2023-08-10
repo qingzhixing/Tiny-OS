@@ -265,6 +265,20 @@ static void mem_pool_init(uint32_t all_mem)
     put_str("   mem_pool_init done\n");
 }
 
+// 在页表中添加虚拟地址 vaddr_ptr和 物理地址 page_phyaddr_ptr的映射
+static void page_table_add(void *vaddr_ptr, void *page_phyaddr_ptr)
+{
+    uint32_t vaddr = (uint32_t)vaddr_ptr, page_phyaddr = (uint32_t)page_phyaddr_ptr;
+    uint32_t *pde = pde_ptr(vaddr);
+    uint32_t *pte = pte_ptr(vaddr);
+
+    /*
+        注意！
+        执行 *pte 需要在 pde创建之后才能找得到，所以先要创建pde再判断pte,否则会引发page_fault
+    */
+    // TODO:止步于此
+}
+
 void mem_init()
 {
     put_str("mem_init start\n");
