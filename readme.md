@@ -16,7 +16,7 @@
 
 ## 运行环境
 
-Bochs x86 Emulator 2.6.11
+**Bochs x86 Emulator 2.6.11**
 
 > 这个需要手动下载源码编译，打开gui_debug并安装，apt,homebrew等下载的Bochs没有打开gui_debug.
 >
@@ -24,17 +24,23 @@ Bochs x86 Emulator 2.6.11
 >
 > [Bochs2.6.11配置安装参考](https://www.cnblogs.com/oasisyang/archive/2021/09/30/15358137.html "Bochs2.6.11配置安装参考")
 
-GNU Make 4.2.1
+若出现下面错误可以打开文件，修改报错的define加一个类型转换
+
+![narrowing conversion](./static/img/narrowing_conversion.png)
+
+![narrowing conversion fix](./static/img/narrowing_conversion_fix.png)
+
+**GNU Make 4.2.1**
 
 > 这个不知道版本有啥关系，反正能用makefile的就行了
 
-gcc version 9.4.0 (Ubuntu 9.4.0-1ubuntu1~20.04.1)
+**gcc** version 9.4.0 (Ubuntu 9.4.0-1ubuntu1~20.04.1)
 
-GNU ld (GNU Binutils for Ubuntu) 2.34
+**GNU ld** (GNU Binutils for Ubuntu) 2.34
 
-NASM version 2.14.02
+**NASM** version 2.14.02
 
-Linux架构：x86_64
+**Linux架构**：x86_64
 
 ## git clone之后要做的事
 
